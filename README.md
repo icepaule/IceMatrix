@@ -8,11 +8,14 @@ Steuerung von MAX7219 8x8 LED Dot-Matrix Displays über Tasmota, Node-RED und Ho
 
 | Display | Module | Farbe | ESP | Funktion |
 |---------|--------|-------|-----|----------|
-| Matrix1 (PV-Matrix) | 4x MAX7219 (32x8) | Rot | ESP8266 (Wemos D1 Mini) | PV-Leistung + Uhrzeit |
-| Matrix2 | 4x MAX7219 (32x8) | Rot | ESP8266 (Wemos D1 Mini) | Uhrzeit + PV-Leistung |
-| Matrix3 | 8x MAX7219 (64x8) | 4x Rot + 4x Blau | ESP8266 (Wemos D1 Mini) | Uhrzeit + PV + Alerts |
+| Matrix1 (PV-Matrix) | 4x MAX7219 (32x8) | Rot | ESP-12F | PV-Leistung (Sonnenstand-basiert) |
+| Matrix2 | 4x MAX7219 (32x8) | Rot | ESP-12F | Uhrzeit + PV-Leistung |
+| Matrix3 | 8x MAX7219 (64x8) | 4x Rot + 4x Blau | Wemos D1 Mini | Uhrzeit + PV + Alerts |
+| Matrix4 (Strompreis) | 4x MAX7219 (32x8) | Rot | Wemos D1 Mini | Tibber Strompreis + Trend |
 
-## Verkabelung (alle Displays)
+## Verkabelung
+
+### Wemos D1 Mini (Matrix3, Matrix4)
 
 | MAX7219 Pin | Wemos D1 Mini Pin | GPIO |
 |-------------|-------------------|------|
@@ -21,6 +24,19 @@ Steuerung von MAX7219 8x8 LED Dot-Matrix Displays über Tasmota, Node-RED und Ho
 | CS | D3 | GPIO0 |
 | VCC | 5V | - |
 | GND | GND | - |
+
+### ESP-12F (Matrix1, Matrix2) - andere Pinbelegung!
+
+| MAX7219 Pin | ESP-12F Pin | GPIO |
+|-------------|-------------|------|
+| CLK | - | GPIO16 |
+| DIN (MOSI) | - | GPIO4 |
+| CS | - | GPIO5 |
+| VCC | 5V | - |
+| GND | GND | - |
+
+> **Wichtig**: ESP-12F hat andere GPIO-Zuordnungen als Wemos D1 Mini!
+> `Module` muss auf `0 (Generic)` stehen, da `Module 1 (Sonoff Basic)` GPIO-Overrides ignoriert.
 
 ## Architektur
 
@@ -51,9 +67,10 @@ Sie enthält nur `USE_DISPLAY_MAX7219` (7-Segment), nicht `USE_DISPLAY_MAX7219_M
 
 Jedes Display hat einen eigenen Node-RED Flow:
 
-- **Matrix1**: PV-Leistung (Standard) / Uhrzeit (10s alle 60s)
+- **Matrix1**: PV-Anzeige Sonnenstand-basiert (Vortag → Leistung → Tagesertrag → Lebensleistung)
 - **Matrix2**: Uhrzeit (Standard) / PV-Leistung (10s alle 60s)
 - **Matrix3**: Links Uhr/PV (5 Zeichen) | Rechts Alerts (4 Zeichen, rotierend)
+- **Matrix4**: Tibber Strompreis + Trend-Pfeil + Min/Max
 
 → [Node-RED Konfiguration](docs/nodered-config.md)
 
@@ -104,3 +121,6 @@ IceMatrix/
 3. **CS-Pin verifizieren** - Nicht blind der ESPHome-Config vertrauen, Pin am Board prüfen
 4. **ESP8266 1MB Flash zu klein für OTA** - Muss per USB/Serial geflasht werden
 5. **CH340 USB-Serial hat Protocol Error 71** - Workaround: USB unbind/rebind + Python serial pre-open
+6. **ESP-12F hat andere GPIO-Pins als Wemos D1 Mini** - CLK=GPIO16, DIN=GPIO4, CS=GPIO5
+7. **Module muss 0 (Generic) sein** bei ESP-12F - Module 1 (Sonoff Basic) ignoriert GPIO-Overrides
+8. **Utility-Meter auf Tasmota ENERGY.Today ist unzuverlässig** - Besser direkt Tasmota-Sensoren nutzen (pv_energie_gestern, pv_energie_heute)

@@ -41,54 +41,72 @@ Texte per MQTT an die Tasmota-Geräte.
 | Matrix3 | `cmnd/Matrix3/DisplayText` | `cmnd/Matrix3/DisplayDimmer` |
 | LED-Matrix2 (ESPHome) | `led-matrix2/display/time` + `led-matrix2/display/pv` | - |
 
-## Flow: Matrix1 (PV + Uhrzeit)
+## Flow: Matrix1 (PV-Matrix, Sonnenstand-basiert)
 
-**Tab**: `Matrix1 (PV + Uhr)`
-**Display**: 4 Module (32x8), Rot, Standort Schuppen
+**Tab**: `Matrix1 (PV-Matrix)`
+**Display**: 4 Module (32x8), Rot, ESP-12F, Standort Schuppen
 
-### Anzeige-Logik
+### Phasen-Logik (Sonnenstand-gesteuert)
 
 ```
-┌──────────────────────────────────────────┐
-│ 50 Sekunden: PV-Daten (Standard)         │
-│   ≥15W:  "1234W"  (aktuelle Leistung)   │
-│   <15W:  "12.3kW" (Tagesertrag/Vortag)  │
-├──────────────────────────────────────────┤
-│ 10 Sekunden: Uhrzeit (Flash)             │
-│   "18:05" (blinkender Doppelpunkt)       │
-└──────────────────────────────────────────┘
-     ◄──────── 60s Zyklus ────────►
+┌─────────────────────────────────────────────────────────┐
+│                    Tagesablauf                           │
+│                                                         │
+│  Nacht          ──► Display AUS                         │
+│  Sunrise - 30min ──► Vortags-Ertrag "4.5kW"  Dimmer 20│
+│  PV ≥ 30W       ──► Aktuelle Leistung "350W"          │
+│  PV < 30W        ──► Tagesertrag "3.2kW"              │
+│  Sonnenuntergang ──► Dimmer auf 10                      │
+│  21:00 - 22:00   ──► PV Lebensleistung "2.79M" (MWh)  │
+│  22:00            ──► Display AUS                       │
+└─────────────────────────────────────────────────────────┘
 ```
+
+### Phasen
+
+| Phase | Bedingung | Anzeige | Beispiel |
+|-------|-----------|---------|----------|
+| `off` | 22:00 - Sunrise-30min | Display aus | - |
+| `morning` | Sunrise-30min, PV < 30W | Vortags-Ertrag | "4.5kW" |
+| `producing` | PV ≥ 30W | Aktuelle Leistung | "350W" |
+| `idle` | PV < 30W (nach Produktion) | Tagesertrag | "3.2kW" |
+| `lifetime` | 21:00 - 22:00 | PV Lebensleistung | "2.79M" |
 
 ### Datenquellen (Home Assistant)
 
 | Sensor | Verwendung |
 |--------|-----------|
 | `sensor.pv_leistung` | Aktuelle PV-Leistung in Watt |
-| `sensor.pv_energy_today` | Tagesertrag in kWh |
-| `sensor.pv_energy_daily` | Tagesertrag + Vortag (Attribut `last_period`) |
+| `sensor.pv_energie_heute` | Tagesertrag in kWh (Tasmota ENERGY.Today) |
+| `sensor.pv_energie_gestern` | Vortags-Ertrag in kWh (Tasmota ENERGY.Yesterday) |
+| `sensor.pv_energie_gesamt` | Gesamt-PV-Produktion in kWh (Tasmota ENERGY.Total) |
+| `sun.sun` | Sonnenstand + next_rising/next_setting |
 
-### Formatierung
+### Formatierung (max 5 Zeichen, kein Scrollen)
 
 ```javascript
-// PV-Leistung
-if (watts >= 15) {
-    display = Math.round(watts) + 'W';     // "1234W"
-} else {
-    display = kwh.toFixed(1) + 'kW';       // "12.3kW"
-}
+// kWh-Anzeige (Morgen / Idle)
+if (kwh < 10)    → "4.5kW"   // 5 Zeichen (. ist schmal)
+if (kwh < 100)   → "12.3k"   // W weglassen
+if (kwh >= 100)  → "100k"    // gerundet
 
-// Uhrzeit (blinkender Doppelpunkt)
-var sep = (seconds % 2 === 0) ? ':' : ' ';
-display = hours + sep + minutes;            // "18:05" / "18 05"
+// Leistung (Producing)
+if (watts < 10000) → "350W"  // bis "9999W"
+if (watts >= 10000) → "10kW" // Umrechnung in kW
+
+// Lebensleistung (MWh)
+if (mwh < 10)    → "2.79M"   // 2 Dezimalen
+if (mwh < 100)   → "25.1M"   // 1 Dezimale
+if (mwh >= 100)  → "100M"    // gerundet
 ```
 
 ### Helligkeit (automatisch)
 
-| Zeit | Dimmer-Wert | Helligkeit |
-|------|------------|-----------|
-| 07:00 - 22:00 | 5 | ~33% |
-| 22:00 - 07:00 | 1 | ~10% |
+| Zeitpunkt | Dimmer | Aktion |
+|-----------|--------|--------|
+| Display einschalten (Sunrise-30min) | 20 | Power ON |
+| Sonnenuntergang | 10 | Abend-Dimm |
+| 22:00 | - | Power OFF |
 
 ---
 

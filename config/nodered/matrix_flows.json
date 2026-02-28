@@ -1,746 +1,16 @@
 [
   {
-    "id": "tab_led_matrix2",
-    "type": "tab",
-    "label": "LED Matrix 2 (Bad)",
-    "disabled": false,
-    "info": "ESP8266 + MAX7219 8x64 LED Matrix im Bad\n\nRote Haelfte (8x32): Uhrzeit\nBlaue Haelfte (8x32): PV-Leistung\n\nESPHome empfaengt Text per MQTT:\n- led-matrix2/display/time -> Rote LEDs\n- led-matrix2/display/pv -> Blaue LEDs\n\nESP IP: 10.10.12.20 (Bad:IoT VLAN 12)"
-  },
-  {
-    "id": "lm2_comment_time",
-    "type": "comment",
-    "z": "tab_led_matrix2",
-    "name": "UHRZEIT -> Rote LEDs (links 8x32)",
-    "info": "Jede Sekunde wird die aktuelle Uhrzeit als HH:MM\nper MQTT an die rote LED-Haelfte gesendet.\n\nTopic: led-matrix2/display/time",
-    "x": 250,
-    "y": 40,
-    "wires": []
-  },
-  {
-    "id": "lm2_inject_time",
-    "type": "inject",
-    "z": "tab_led_matrix2",
-    "name": "Jede Sekunde",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "1",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "2",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 140,
-    "y": 120,
-    "wires": [
-      [
-        "lm2_format_time"
-      ]
-    ]
-  },
-  {
-    "id": "lm2_format_time",
-    "type": "function",
-    "z": "tab_led_matrix2",
-    "name": "Format HH:MM",
-    "func": "// Aktuelle Uhrzeit als HH:MM formatieren\nvar now = new Date();\nvar h = String(now.getHours()).padStart(2, '0');\nvar m = String(now.getMinutes()).padStart(2, '0');\nmsg.payload = h + ':' + m;\nreturn msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 350,
-    "y": 120,
-    "wires": [
-      [
-        "lm2_mqtt_time",
-        "lm2_debug_time"
-      ]
-    ]
-  },
-  {
-    "id": "lm2_mqtt_time",
-    "type": "mqtt out",
-    "z": "tab_led_matrix2",
-    "name": "MQTT: display/time",
-    "topic": "led-matrix2/display/time",
-    "qos": "0",
-    "retain": "true",
-    "respTopic": "",
-    "contentType": "",
-    "userProps": "",
-    "correl": "",
-    "expiry": "",
-    "broker": "mqtt_nuc",
-    "x": 590,
-    "y": 120,
-    "wires": []
-  },
-  {
-    "id": "lm2_debug_time",
-    "type": "debug",
-    "z": "tab_led_matrix2",
-    "name": "Uhrzeit",
-    "active": false,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": true,
-    "complete": "payload",
-    "targetType": "msg",
-    "statusVal": "payload",
-    "statusType": "auto",
-    "x": 560,
-    "y": 180,
-    "wires": []
-  },
-  {
-    "id": "lm2_comment_pv",
-    "type": "comment",
-    "z": "tab_led_matrix2",
-    "name": "PV-LEISTUNG -> Blaue LEDs (rechts 8x32)",
-    "info": "Wenn sich sensor.pv_leistung in HA aendert,\nwird der Wert formatiert und per MQTT\nan die blaue LED-Haelfte gesendet.\n\nTopic: led-matrix2/display/pv\n\nFormat:\n- Unter 1000W: z.B. '420W'\n- Ab 1000W: z.B. '1.2kW'",
-    "x": 270,
-    "y": 280,
-    "wires": []
-  },
-  {
-    "id": "lm2_ha_pv",
-    "type": "server-state-changed",
-    "z": "tab_led_matrix2",
-    "name": "sensor.pv_leistung",
-    "server": "80ef547.fe1b7a8",
-    "version": 6,
-    "outputs": 1,
-    "exposeAsEntityConfig": "",
-    "entities": {
-      "entity": [
-        "sensor.pv_leistung"
-      ],
-      "substring": [],
-      "regex": []
-    },
-    "outputInitially": true,
-    "stateType": "num",
-    "ifState": "",
-    "ifStateType": "str",
-    "ifStateOperator": "is",
-    "outputOnlyOnStateChange": false,
-    "for": "0",
-    "forType": "num",
-    "forUnits": "seconds",
-    "ignorePrevStateNull": false,
-    "ignorePrevStateUnknown": false,
-    "ignorePrevStateUnavailable": false,
-    "ignoreCurrentStateUnknown": false,
-    "ignoreCurrentStateUnavailable": false,
-    "outputProperties": [
-      {
-        "property": "payload",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "entityState"
-      },
-      {
-        "property": "data",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "eventData"
-      }
-    ],
-    "x": 170,
-    "y": 360,
-    "wires": [
-      [
-        "lm2_format_pv"
-      ]
-    ]
-  },
-  {
-    "id": "lm2_format_pv",
-    "type": "function",
-    "z": "tab_led_matrix2",
-    "name": "Format PV Watt",
-    "func": "// PV-Leistung formatieren\nvar watts = parseFloat(msg.payload) || 0;\n\nif (watts >= 1000) {\n    // Ab 1kW: '1.2kW' Format\n    msg.payload = (watts / 1000).toFixed(1) + 'kW';\n} else {\n    // Unter 1kW: '420W' Format\n    msg.payload = Math.round(watts) + 'W';\n}\n\nreturn msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 380,
-    "y": 360,
-    "wires": [
-      [
-        "lm2_mqtt_pv",
-        "lm2_debug_pv"
-      ]
-    ]
-  },
-  {
-    "id": "lm2_mqtt_pv",
-    "type": "mqtt out",
-    "z": "tab_led_matrix2",
-    "name": "MQTT: display/pv",
-    "topic": "led-matrix2/display/pv",
-    "qos": "0",
-    "retain": "true",
-    "respTopic": "",
-    "contentType": "",
-    "userProps": "",
-    "correl": "",
-    "expiry": "",
-    "broker": "mqtt_nuc",
-    "x": 590,
-    "y": 360,
-    "wires": []
-  },
-  {
-    "id": "lm2_debug_pv",
-    "type": "debug",
-    "z": "tab_led_matrix2",
-    "name": "PV Leistung",
-    "active": false,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": true,
-    "complete": "payload",
-    "targetType": "msg",
-    "statusVal": "payload",
-    "statusType": "auto",
-    "x": 570,
-    "y": 420,
-    "wires": []
-  },
-  {
-    "id": "lm2_comment_info",
-    "type": "comment",
-    "z": "tab_led_matrix2",
-    "name": "Erweiterungsideen",
-    "info": "Du kannst diesen Flow leicht erweitern:\n\n1. Weitere Sensoren anzeigen:\n   - Neuen HA-State Node hinzufuegen\n   - Format-Function anpassen\n   - An MQTT Topic publizieren\n\n2. Wechselanzeige (abwechselnd verschiedene Werte):\n   - Mehrere Inject-Nodes mit verschiedenen Intervallen\n   - Switch-Node zum Umschalten\n\n3. Helligkeit steuern:\n   - MQTT publish an 'led-matrix2/number/intensity/command'\n   - Wert 0-15\n\n4. Animationen:\n   - Scrollenden Text per setTimeout in Function-Node",
-    "x": 160,
-    "y": 500,
-    "wires": []
-  },
-  {
-    "id": "tab_matrix2",
-    "type": "tab",
-    "label": "Matrix2 (Uhr + PV)",
-    "disabled": false,
-    "info": "ESP8266 + MAX7219 32x8\n\nImmer: Uhrzeit HH:MM (blinkender Doppelpunkt)\nAlle 5 Min fuer 10s:\n- PV >= 15W: aktuelle Leistung in W\n- PV < 15W tags: Tagesertrag in kWh\n- PV < 15W nach Mitternacht: Vortagsertrag in kWh\n\n22:00-07:00: Helligkeit 10%\n07:00-22:00: Helligkeit 33%"
-  },
-  {
-    "id": "m2_title",
-    "type": "comment",
-    "z": "tab_matrix2",
-    "name": "Matrix2: Uhrzeit + PV (32x8 MAX7219)",
-    "info": "",
-    "x": 280,
-    "y": 40,
-    "wires": []
-  },
-  {
-    "id": "m2_comment_data",
-    "type": "comment",
-    "z": "tab_matrix2",
-    "name": "--- DATEN SAMMELN ---",
-    "info": "",
-    "x": 180,
-    "y": 100,
-    "wires": []
-  },
-  {
-    "id": "m2_pv_watch",
-    "type": "server-state-changed",
-    "z": "tab_matrix2",
-    "name": "sensor.pv_leistung",
-    "server": "80ef547.fe1b7a8",
-    "version": 6,
-    "outputs": 1,
-    "exposeAsEntityConfig": "",
-    "entities": {
-      "entity": [
-        "sensor.pv_leistung"
-      ],
-      "substring": [],
-      "regex": []
-    },
-    "outputInitially": true,
-    "stateType": "num",
-    "ifState": "",
-    "ifStateType": "str",
-    "ifStateOperator": "is",
-    "outputOnlyOnStateChange": false,
-    "for": "0",
-    "forType": "num",
-    "forUnits": "seconds",
-    "ignorePrevStateNull": false,
-    "ignorePrevStateUnknown": false,
-    "ignorePrevStateUnavailable": false,
-    "ignoreCurrentStateUnknown": false,
-    "ignoreCurrentStateUnavailable": false,
-    "outputProperties": [
-      {
-        "property": "payload",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "entityState"
-      }
-    ],
-    "x": 170,
-    "y": 160,
-    "wires": [
-      [
-        "m2_store_pv"
-      ]
-    ]
-  },
-  {
-    "id": "m2_store_pv",
-    "type": "function",
-    "z": "tab_matrix2",
-    "name": "Speichere PV W",
-    "func": "flow.set('m2_pv_watts', parseFloat(msg.payload) || 0);",
-    "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 390,
-    "y": 160,
-    "wires": []
-  },
-  {
-    "id": "m2_energy_watch",
-    "type": "server-state-changed",
-    "z": "tab_matrix2",
-    "name": "sensor.pv_energy_today",
-    "server": "80ef547.fe1b7a8",
-    "version": 6,
-    "outputs": 1,
-    "exposeAsEntityConfig": "",
-    "entities": {
-      "entity": [
-        "sensor.pv_energy_today"
-      ],
-      "substring": [],
-      "regex": []
-    },
-    "outputInitially": true,
-    "stateType": "num",
-    "ifState": "",
-    "ifStateType": "str",
-    "ifStateOperator": "is",
-    "outputOnlyOnStateChange": false,
-    "for": "0",
-    "forType": "num",
-    "forUnits": "seconds",
-    "ignorePrevStateNull": false,
-    "ignorePrevStateUnknown": false,
-    "ignorePrevStateUnavailable": false,
-    "ignoreCurrentStateUnknown": false,
-    "ignoreCurrentStateUnavailable": false,
-    "outputProperties": [
-      {
-        "property": "payload",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "entityState"
-      }
-    ],
-    "x": 170,
-    "y": 220,
-    "wires": [
-      [
-        "m2_store_energy"
-      ]
-    ]
-  },
-  {
-    "id": "m2_store_energy",
-    "type": "function",
-    "z": "tab_matrix2",
-    "name": "Speichere kWh",
-    "func": "flow.set('m2_daily_kwh', parseFloat(msg.payload) || 0);",
-    "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 390,
-    "y": 220,
-    "wires": []
-  },
-  {
-    "id": "m2_daily_meter_watch",
-    "type": "server-state-changed",
-    "z": "tab_matrix2",
-    "name": "sensor.pv_energy_daily",
-    "server": "80ef547.fe1b7a8",
-    "version": 6,
-    "outputs": 1,
-    "exposeAsEntityConfig": "",
-    "entities": {
-      "entity": [
-        "sensor.pv_energy_daily"
-      ],
-      "substring": [],
-      "regex": []
-    },
-    "outputInitially": true,
-    "stateType": "str",
-    "ifState": "",
-    "ifStateType": "str",
-    "ifStateOperator": "is",
-    "outputOnlyOnStateChange": false,
-    "for": "0",
-    "forType": "num",
-    "forUnits": "seconds",
-    "ignorePrevStateNull": false,
-    "ignorePrevStateUnknown": false,
-    "ignorePrevStateUnavailable": false,
-    "ignoreCurrentStateUnknown": false,
-    "ignoreCurrentStateUnavailable": false,
-    "outputProperties": [
-      {
-        "property": "payload",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "entityState"
-      },
-      {
-        "property": "attributes",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "eventData"
-      }
-    ],
-    "x": 170,
-    "y": 280,
-    "wires": [
-      [
-        "m2_store_yesterday"
-      ]
-    ]
-  },
-  {
-    "id": "m2_store_yesterday",
-    "type": "function",
-    "z": "tab_matrix2",
-    "name": "Speichere Vortag",
-    "func": "var attrs = msg.attributes;\nif (attrs && attrs.new_state && attrs.new_state.attributes) {\n    var lp = parseFloat(attrs.new_state.attributes.last_period);\n    if (!isNaN(lp)) {\n        flow.set('m2_yesterday_kwh', lp);\n    }\n}",
-    "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 400,
-    "y": 280,
-    "wires": []
-  },
-  {
-    "id": "m2_comment_display",
-    "type": "comment",
-    "z": "tab_matrix2",
-    "name": "--- ANZEIGE (jede Sekunde) ---",
-    "info": "",
-    "x": 210,
-    "y": 380,
-    "wires": []
-  },
-  {
-    "id": "m2_inject",
-    "type": "inject",
-    "z": "tab_matrix2",
-    "name": "Jede Sekunde",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "1",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "8",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 140,
-    "y": 440,
-    "wires": [
-      [
-        "m2_display_logic"
-      ]
-    ]
-  },
-  {
-    "id": "m2_display_logic",
-    "type": "function",
-    "z": "tab_matrix2",
-    "name": "Anzeige-Logik",
-    "func": "var watts = flow.get('m2_pv_watts') || 0;\nvar dailyKwh = flow.get('m2_daily_kwh') || 0;\nvar yesterdayKwh = flow.get('m2_yesterday_kwh') || 0;\nvar flashUntil = flow.get('m2_show_pv_until') || 0;\nvar now = Date.now();\n\n// PV-Daten Phase (10s von 60s Zyklus)\nif (now < flashUntil) {\n    if (watts >= 15) {\n        // Aktuelle Leistung in W\n        msg.payload = Math.round(watts) + 'W';\n    } else {\n        // Tagessumme oder Vortag in kWh\n        var kwh;\n        if (dailyKwh < 0.05 && yesterdayKwh > 0.05) {\n            kwh = yesterdayKwh;\n        } else {\n            kwh = dailyKwh;\n        }\n        // toFixed(1) mit Punkt - MAX7219 zeigt Punkt kompakt an\n        msg.payload = kwh.toFixed(1) + 'kW';\n    }\n    return msg;\n}\n\n// Standard: Uhrzeit mit blinkendem Doppelpunkt\nvar d = new Date();\nvar h = String(d.getHours()).padStart(2, '0');\nvar m = String(d.getMinutes()).padStart(2, '0');\nvar sep = (d.getSeconds() % 2 === 0) ? ':' : ' ';\nmsg.payload = h + sep + m;\nreturn msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "flow.set('m2_pv_watts', 0);\nflow.set('m2_daily_kwh', 0);\nflow.set('m2_yesterday_kwh', 0);\nflow.set('m2_show_pv_until', 0);",
-    "finalize": "",
-    "libs": [],
-    "x": 350,
-    "y": 440,
-    "wires": [
-      [
-        "m2_dedup"
-      ]
-    ]
-  },
-  {
-    "id": "m2_dedup",
-    "type": "function",
-    "z": "tab_matrix2",
-    "name": "Durchleiten",
-    "func": "return msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 570,
-    "y": 440,
-    "wires": [
-      [
-        "m2_mqtt_display",
-        "m2_debug"
-      ]
-    ]
-  },
-  {
-    "id": "m2_comment_flash",
-    "type": "comment",
-    "z": "tab_matrix2",
-    "name": "--- FLASH TRIGGER (alle 5 Min fuer 10s) ---",
-    "info": "",
-    "x": 250,
-    "y": 540,
-    "wires": []
-  },
-  {
-    "id": "m2_inject_flash",
-    "type": "inject",
-    "z": "tab_matrix2",
-    "name": "Alle 60 Sekunden",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "60",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "12",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 150,
-    "y": 600,
-    "wires": [
-      [
-        "m2_set_flash"
-      ]
-    ]
-  },
-  {
-    "id": "m2_set_flash",
-    "type": "function",
-    "z": "tab_matrix2",
-    "name": "Flash 10s aktivieren",
-    "func": "// Flash fuer 10s aktivieren (Sekunde 50-60 im Zyklus)\nflow.set('m2_show_pv_until', Date.now() + 10000);\n// last_display zuruecksetzen damit sofort gesendet wird\nflow.set('m2_last_display', '');",
-    "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 370,
-    "y": 600,
-    "wires": []
-  },
-  {
-    "id": "m2_comment_dim",
-    "type": "comment",
-    "z": "tab_matrix2",
-    "name": "--- HELLIGKEIT (Nacht-Dimming 22-07 Uhr) ---",
-    "info": "",
-    "x": 260,
-    "y": 680,
-    "wires": []
-  },
-  {
-    "id": "m2_dim_night",
-    "type": "inject",
-    "z": "tab_matrix2",
-    "name": "22:00 -> Dimmen",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "00 22 * * *",
-    "once": false,
-    "onceDelay": "",
-    "topic": "",
-    "payload": "1",
-    "payloadType": "num",
-    "x": 160,
-    "y": 740,
-    "wires": [
-      [
-        "m2_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m2_dim_day",
-    "type": "inject",
-    "z": "tab_matrix2",
-    "name": "07:00 -> Hell",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "00 07 * * *",
-    "once": false,
-    "onceDelay": "",
-    "topic": "",
-    "payload": "5",
-    "payloadType": "num",
-    "x": 150,
-    "y": 800,
-    "wires": [
-      [
-        "m2_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m2_dim_startup",
-    "type": "inject",
-    "z": "tab_matrix2",
-    "name": "Startup -> Helligkeit pruefen",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "10",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 200,
-    "y": 860,
-    "wires": [
-      [
-        "m2_dim_check"
-      ]
-    ]
-  },
-  {
-    "id": "m2_dim_check",
-    "type": "function",
-    "z": "tab_matrix2",
-    "name": "Tag oder Nacht?",
-    "func": "var hour = new Date().getHours();\nif (hour >= 22 || hour < 7) {\n    msg.payload = 1;  // Nacht: 10%\n} else {\n    msg.payload = 5;  // Tag: 33%\n}\nreturn msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 430,
-    "y": 860,
-    "wires": [
-      [
-        "m2_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m2_mqtt_dimmer",
-    "type": "mqtt out",
-    "z": "tab_matrix2",
-    "name": "cmnd/Matrix2/DisplayDimmer",
-    "topic": "cmnd/Matrix2/DisplayDimmer",
-    "qos": "0",
-    "retain": "false",
-    "respTopic": "",
-    "contentType": "",
-    "userProps": "",
-    "correl": "",
-    "expiry": "",
-    "broker": "mqtt_nuc",
-    "x": 490,
-    "y": 740,
-    "wires": []
-  },
-  {
-    "id": "m2_mqtt_display",
-    "type": "mqtt out",
-    "z": "tab_matrix2",
-    "name": "cmnd/Matrix2/DisplayText",
-    "topic": "cmnd/Matrix2/DisplayText",
-    "qos": "0",
-    "retain": "false",
-    "respTopic": "",
-    "contentType": "",
-    "userProps": "",
-    "correl": "",
-    "expiry": "",
-    "broker": "mqtt_nuc",
-    "x": 810,
-    "y": 420,
-    "wires": []
-  },
-  {
-    "id": "m2_debug",
-    "type": "debug",
-    "z": "tab_matrix2",
-    "name": "Matrix2 Debug",
-    "active": false,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": true,
-    "complete": "payload",
-    "targetType": "msg",
-    "statusVal": "payload",
-    "statusType": "auto",
-    "x": 800,
-    "y": 480,
-    "wires": []
-  },
-  {
     "id": "tab_matrix1",
     "type": "tab",
-    "label": "Matrix1 (PV + Uhr)",
+    "label": "Matrix1 (PV-Matrix)",
     "disabled": false,
-    "info": "ESP8266 + MAX7219 32x8 LED Matrix am Schuppen\n\nImmer: PV-Leistungsdaten (50s)\nAlle 60s fuer 10s: Uhrzeit HH:MM\n\nModi PV-Anzeige:\n- PV >= 15W: aktuelle Leistung in W\n- PV < 15W tags: Tagesertrag in kWh\n- PV < 15W nach Mitternacht: Vortagsertrag in kWh\n\n22:00-07:00: Helligkeit 10%\n07:00-22:00: Helligkeit 33%"
+    "info": "ESP-12F + MAX7219 32x8 LED Matrix (Schuppen)\n\nSunrise-30min: Display ON, Vortags-Ertrag\nPV >= 50W: aktuelle Leistung in W\nPV < 50W: Tagesertrag in kWh\nSonnenuntergang: Dimmer auf 10\n21:00-22:00: PV Lebensleistung (MWh)\n22:00: Display OFF"
   },
   {
     "id": "m1_title",
     "type": "comment",
     "z": "tab_matrix1",
-    "name": "Matrix1: PV + Uhrzeit (32x8 MAX7219, Schuppen)",
+    "name": "Matrix1: PV-Matrix (32x8 MAX7219, Schuppen)",
     "info": "",
     "x": 300,
     "y": 40,
@@ -884,20 +154,20 @@
     "id": "m1_daily_meter_watch",
     "type": "server-state-changed",
     "z": "tab_matrix1",
-    "name": "sensor.pv_energy_daily",
+    "name": "sensor.pv_energie_gestern",
     "server": "80ef547.fe1b7a8",
     "version": 6,
     "outputs": 1,
     "exposeAsEntityConfig": "",
     "entities": {
       "entity": [
-        "sensor.pv_energy_daily"
+        "sensor.pv_energie_gestern"
       ],
       "substring": [],
       "regex": []
     },
     "outputInitially": true,
-    "stateType": "str",
+    "stateType": "num",
     "ifState": "",
     "ifStateType": "str",
     "ifStateOperator": "is",
@@ -916,12 +186,6 @@
         "propertyType": "msg",
         "value": "",
         "valueType": "entityState"
-      },
-      {
-        "property": "attributes",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "eventData"
       }
     ],
     "x": 170,
@@ -936,8 +200,8 @@
     "id": "m1_store_yesterday",
     "type": "function",
     "z": "tab_matrix1",
-    "name": "Speichere Vortag",
-    "func": "var attrs = msg.attributes;\nif (attrs && attrs.new_state && attrs.new_state.attributes) {\n    var lp = parseFloat(attrs.new_state.attributes.last_period);\n    if (!isNaN(lp)) {\n        flow.set('m1_yesterday_kwh', lp);\n    }\n}",
+    "name": "Speichere Gestern",
+    "func": "flow.set('m1_yesterday_kwh', parseFloat(msg.payload) || 0);",
     "outputs": 0,
     "timeout": "",
     "noerr": 0,
@@ -952,7 +216,7 @@
     "id": "m1_comment_display",
     "type": "comment",
     "z": "tab_matrix1",
-    "name": "--- ANZEIGE: 50s PV / 10s Uhrzeit ---",
+    "name": "--- ANZEIGE-LOGIK (Sonnenstand + PV) ---",
     "info": "",
     "x": 240,
     "y": 380,
@@ -987,196 +251,26 @@
     "id": "m1_display_logic",
     "type": "function",
     "z": "tab_matrix1",
-    "name": "Anzeige-Logik (PV default)",
-    "func": "var watts = flow.get('m1_pv_watts') || 0;\nvar dailyKwh = flow.get('m1_daily_kwh') || 0;\nvar yesterdayKwh = flow.get('m1_yesterday_kwh') || 0;\nvar flashUntil = flow.get('m1_show_time_until') || 0;\nvar now = Date.now();\n\n// Uhrzeit-Phase (10s von 60s Zyklus)\nif (now < flashUntil) {\n    var d = new Date();\n    var h = String(d.getHours()).padStart(2, '0');\n    var m = String(d.getMinutes()).padStart(2, '0');\n    var sep = (d.getSeconds() % 2 === 0) ? ':' : ' ';\n    msg.payload = h + sep + m;\n    return msg;\n}\n\n// Standard: PV-Daten\nif (watts >= 15) {\n    msg.payload = Math.round(watts) + 'W';\n} else {\n    var kwh;\n    if (dailyKwh < 0.05 && yesterdayKwh > 0.05) {\n        kwh = yesterdayKwh;\n    } else {\n        kwh = dailyKwh;\n    }\n    msg.payload = kwh.toFixed(1) + 'kW';\n}\nreturn msg;",
-    "outputs": 1,
+    "name": "PV Anzeige-Logik",
+    "func": "var watts = flow.get('m1_pv_watts') || 0;\nvar dailyKwh = flow.get('m1_daily_kwh') || 0;\nvar yesterdayKwh = flow.get('m1_yesterday_kwh') || 0;\nvar nextRisingStr = flow.get('m1_next_rising') || '';\nvar sunState = flow.get('m1_sun_state') || '';\n\nvar now = new Date();\nvar nowMs = now.getTime();\nvar hour = now.getHours();\n\nvar phase = flow.get('m1_phase') || 'init';\nvar prevPhase = phase;\n\n// Sunrise - 30 min\nvar sunrise30Ms = 0;\nif (nextRisingStr) {\n    sunrise30Ms = new Date(nextRisingStr).getTime() - 30 * 60000;\n}\n\n// Skip logic until sun data is available\nif (!sunState) {\n    return [null, null, null];\n}\n\n// --- Phase transitions ---\n\n// 22:00+ -> OFF\nif (hour >= 22) {\n    phase = 'off';\n}\n// 21:00-22:00 -> LIFETIME (Lebensleistung)\nelse if (hour >= 21) {\n    phase = 'lifetime';\n}\n// Night, before sunrise-30min -> OFF\nelse if (sunState === 'below_horizon' && hour < 12 && sunrise30Ms > 0 && nowMs < sunrise30Ms) {\n    phase = 'off';\n}\n// Sunrise-30min reached, sun not up yet, no production -> MORNING\nelse if (phase === 'off' || phase === 'init') {\n    if (sunState === 'below_horizon' && sunrise30Ms > 0 && nowMs >= sunrise30Ms) {\n        phase = 'morning';\n    } else if (sunState === 'above_horizon') {\n        phase = (watts >= 30) ? 'producing' : 'idle';\n    } else if (sunState === 'below_horizon' && hour >= 12) {\n        // Restart during evening (after sunset, before 22:00)\n        phase = 'idle';\n    }\n}\n\n// PV >= 50W -> PRODUCING (from morning or idle)\nif (watts >= 30 && (phase === 'morning' || phase === 'idle')) {\n    phase = 'producing';\n}\n// PV < 50W after producing -> IDLE\nelse if (watts < 30 && phase === 'producing') {\n    phase = 'idle';\n}\n\n// --- Power / Dimmer ---\nvar powerMsg = null;\nvar dimmerMsg = null;\n\nif (phase !== prevPhase) {\n    if (phase === 'off' && prevPhase !== 'off') {\n        powerMsg = {payload: 'OFF'};\n    }\n    if ((prevPhase === 'off' || prevPhase === 'init') && phase !== 'off') {\n        powerMsg = {payload: 'ON'};\n        dimmerMsg = {payload: 20};\n        flow.set('m1_evening_dimmed', false);\n    }\n}\n\n// After sunset -> dim to 10 (once)\nif (sunState === 'below_horizon' && hour >= 12 && hour < 22 &&\n    !flow.get('m1_evening_dimmed') && phase !== 'off') {\n    dimmerMsg = {payload: 10};\n    flow.set('m1_evening_dimmed', true);\n}\n\n// --- Display text ---\nvar displayText = null;\nswitch (phase) {\n    case 'morning':\n        if (yesterdayKwh < 10) {\n            displayText = yesterdayKwh.toFixed(1) + 'kW';\n        } else if (yesterdayKwh < 100) {\n            displayText = yesterdayKwh.toFixed(1) + 'k';\n        } else {\n            displayText = Math.round(yesterdayKwh) + 'k';\n        }\n        break;\n    case 'producing':\n        if (watts < 10000) {\n            displayText = Math.round(watts) + 'W';\n        } else {\n            displayText = Math.round(watts / 1000) + 'kW';\n        }\n        break;\n    case 'idle':\n        if (dailyKwh < 10) {\n            displayText = dailyKwh.toFixed(1) + 'kW';\n        } else if (dailyKwh < 100) {\n            displayText = dailyKwh.toFixed(1) + 'k';\n        } else {\n            displayText = Math.round(dailyKwh) + 'k';\n        }\n        break;\n    case 'lifetime':\n        var totalKwh = flow.get('m1_lifetime_kwh') || 0;\n        if (totalKwh < 10) {\n            displayText = totalKwh.toFixed(1) + 'kW';\n        } else if (totalKwh < 1000) {\n            displayText = Math.round(totalKwh) + 'kW';\n        } else {\n            var mwh = totalKwh / 1000;\n            if (mwh < 10) {\n                displayText = mwh.toFixed(2) + 'M';\n            } else if (mwh < 100) {\n                displayText = mwh.toFixed(1) + 'M';\n            } else {\n                displayText = Math.round(mwh) + 'M';\n            }\n        }\n        break;\n}\n\n// Dedup\nvar lastText = flow.get('m1_last_text') || '';\nvar textMsg = null;\nif (displayText && displayText !== lastText) {\n    textMsg = {payload: displayText};\n    flow.set('m1_last_text', displayText);\n}\n\nflow.set('m1_phase', phase);\n\nvar fills = {producing:'green', morning:'yellow', idle:'blue', lifetime:'purple'};\nnode.status({\n    fill: fills[phase] || 'grey',\n    shape: 'dot',\n    text: phase + ': ' + (displayText || 'aus') + ' (' + watts + 'W)'\n});\n\nreturn [textMsg, dimmerMsg, powerMsg];",
+    "outputs": 3,
     "timeout": "",
     "noerr": 0,
-    "initialize": "flow.set('m1_pv_watts', 0);\nflow.set('m1_daily_kwh', 0);\nflow.set('m1_yesterday_kwh', 0);\nflow.set('m1_show_time_until', 0);",
+    "initialize": "flow.set('m1_phase', 'init');\nflow.set('m1_last_text', '');\nflow.set('m1_evening_dimmed', false);\nflow.set('m1_pv_watts', 0);\nflow.set('m1_daily_kwh', 0);\nflow.set('m1_yesterday_kwh', 0);\nflow.set('m1_lifetime_kwh', 0);",
     "finalize": "",
     "libs": [],
     "x": 370,
     "y": 440,
     "wires": [
       [
-        "m1_passthrough"
-      ]
-    ]
-  },
-  {
-    "id": "m1_passthrough",
-    "type": "function",
-    "z": "tab_matrix1",
-    "name": "Durchleiten",
-    "func": "return msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 570,
-    "y": 440,
-    "wires": [
-      [
         "m1_mqtt_display",
         "m1_debug"
-      ]
-    ]
-  },
-  {
-    "id": "m1_comment_flash",
-    "type": "comment",
-    "z": "tab_matrix1",
-    "name": "--- UHRZEIT-FLASH (alle 60s fuer 10s) ---",
-    "info": "",
-    "x": 250,
-    "y": 540,
-    "wires": []
-  },
-  {
-    "id": "m1_inject_flash",
-    "type": "inject",
-    "z": "tab_matrix1",
-    "name": "Alle 60 Sekunden",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "60",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "15",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 150,
-    "y": 600,
-    "wires": [
-      [
-        "m1_set_flash"
-      ]
-    ]
-  },
-  {
-    "id": "m1_set_flash",
-    "type": "function",
-    "z": "tab_matrix1",
-    "name": "Uhrzeit 10s aktivieren",
-    "func": "flow.set('m1_show_time_until', Date.now() + 10000);",
-    "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 390,
-    "y": 600,
-    "wires": []
-  },
-  {
-    "id": "m1_comment_dim",
-    "type": "comment",
-    "z": "tab_matrix1",
-    "name": "--- HELLIGKEIT (22-07 Uhr gedimmt) ---",
-    "info": "",
-    "x": 240,
-    "y": 680,
-    "wires": []
-  },
-  {
-    "id": "m1_dim_night",
-    "type": "inject",
-    "z": "tab_matrix1",
-    "name": "22:00 -> Dimmen",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "00 22 * * *",
-    "once": false,
-    "onceDelay": "",
-    "topic": "",
-    "payload": "1",
-    "payloadType": "num",
-    "x": 160,
-    "y": 740,
-    "wires": [
+      ],
       [
         "m1_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m1_dim_day",
-    "type": "inject",
-    "z": "tab_matrix1",
-    "name": "07:00 -> Hell",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "00 07 * * *",
-    "once": false,
-    "onceDelay": "",
-    "topic": "",
-    "payload": "5",
-    "payloadType": "num",
-    "x": 150,
-    "y": 800,
-    "wires": [
+      ],
       [
-        "m1_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m1_dim_startup",
-    "type": "inject",
-    "z": "tab_matrix1",
-    "name": "Startup -> Helligkeit",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "10",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 170,
-    "y": 860,
-    "wires": [
-      [
-        "m1_dim_check"
-      ]
-    ]
-  },
-  {
-    "id": "m1_dim_check",
-    "type": "function",
-    "z": "tab_matrix1",
-    "name": "Tag oder Nacht?",
-    "func": "var hour = new Date().getHours();\nif (hour >= 22 || hour < 7) {\n    msg.payload = 1;\n} else {\n    msg.payload = 5;\n}\nreturn msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 400,
-    "y": 860,
-    "wires": [
-      [
-        "m1_mqtt_dimmer"
+        "m1_mqtt_power"
       ]
     ]
   },
@@ -1234,168 +328,17 @@
     "wires": []
   },
   {
-    "id": "tab_matrix3",
-    "type": "tab",
-    "label": "Matrix3 (Uhr+PV+Alerts)",
-    "disabled": false,
-    "info": "ESP8266 + MAX7219 64x8 (8 Module)\n\nLinke Haelfte (32px): Uhrzeit + PV (wie Matrix2)\nRechte Haelfte (32px): Benachrichtigungen nach Prioritaet\n\nBenachrichtigungsquellen werden ueber input_boolean Helfer\nin HA aktiviert/deaktiviert."
-  },
-  {
-    "id": "m3_title",
-    "type": "comment",
-    "z": "tab_matrix3",
-    "name": "Matrix3: Uhr+PV | Benachrichtigungen (64x8)",
-    "info": "",
-    "x": 310,
-    "y": 40,
-    "wires": []
-  },
-  {
-    "id": "m3_comment_data",
-    "type": "comment",
-    "z": "tab_matrix3",
-    "name": "--- DATEN SAMMELN ---",
-    "info": "",
-    "x": 180,
-    "y": 100,
-    "wires": []
-  },
-  {
-    "id": "m3_pv_watch",
+    "id": "m1_sun_watch",
     "type": "server-state-changed",
-    "z": "tab_matrix3",
-    "name": "sensor.pv_leistung",
+    "z": "tab_matrix1",
+    "name": "sun.sun",
     "server": "80ef547.fe1b7a8",
     "version": 6,
     "outputs": 1,
     "exposeAsEntityConfig": "",
     "entities": {
       "entity": [
-        "sensor.pv_leistung"
-      ],
-      "substring": [],
-      "regex": []
-    },
-    "outputInitially": true,
-    "stateType": "num",
-    "ifState": "",
-    "ifStateType": "str",
-    "ifStateOperator": "is",
-    "outputOnlyOnStateChange": false,
-    "for": "0",
-    "forType": "num",
-    "forUnits": "seconds",
-    "ignorePrevStateNull": false,
-    "ignorePrevStateUnknown": false,
-    "ignorePrevStateUnavailable": false,
-    "ignoreCurrentStateUnknown": false,
-    "ignoreCurrentStateUnavailable": false,
-    "outputProperties": [
-      {
-        "property": "payload",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "entityState"
-      }
-    ],
-    "x": 170,
-    "y": 160,
-    "wires": [
-      [
-        "m3_store_pv"
-      ]
-    ]
-  },
-  {
-    "id": "m3_store_pv",
-    "type": "function",
-    "z": "tab_matrix3",
-    "name": "PV W",
-    "func": "flow.set('m3_pv_watts', parseFloat(msg.payload) || 0);",
-    "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 370,
-    "y": 160,
-    "wires": []
-  },
-  {
-    "id": "m3_energy_watch",
-    "type": "server-state-changed",
-    "z": "tab_matrix3",
-    "name": "sensor.pv_energy_today",
-    "server": "80ef547.fe1b7a8",
-    "version": 6,
-    "outputs": 1,
-    "exposeAsEntityConfig": "",
-    "entities": {
-      "entity": [
-        "sensor.pv_energy_today"
-      ],
-      "substring": [],
-      "regex": []
-    },
-    "outputInitially": true,
-    "stateType": "num",
-    "ifState": "",
-    "ifStateType": "str",
-    "ifStateOperator": "is",
-    "outputOnlyOnStateChange": false,
-    "for": "0",
-    "forType": "num",
-    "forUnits": "seconds",
-    "ignorePrevStateNull": false,
-    "ignorePrevStateUnknown": false,
-    "ignorePrevStateUnavailable": false,
-    "ignoreCurrentStateUnknown": false,
-    "ignoreCurrentStateUnavailable": false,
-    "outputProperties": [
-      {
-        "property": "payload",
-        "propertyType": "msg",
-        "value": "",
-        "valueType": "entityState"
-      }
-    ],
-    "x": 170,
-    "y": 210,
-    "wires": [
-      [
-        "m3_store_energy"
-      ]
-    ]
-  },
-  {
-    "id": "m3_store_energy",
-    "type": "function",
-    "z": "tab_matrix3",
-    "name": "kWh",
-    "func": "flow.set('m3_daily_kwh', parseFloat(msg.payload) || 0);",
-    "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 370,
-    "y": 210,
-    "wires": []
-  },
-  {
-    "id": "m3_daily_meter_watch",
-    "type": "server-state-changed",
-    "z": "tab_matrix3",
-    "name": "sensor.pv_energy_daily",
-    "server": "80ef547.fe1b7a8",
-    "version": 6,
-    "outputs": 1,
-    "exposeAsEntityConfig": "",
-    "entities": {
-      "entity": [
-        "sensor.pv_energy_daily"
+        "sun.sun"
       ],
       "substring": [],
       "regex": []
@@ -1429,364 +372,126 @@
       }
     ],
     "x": 170,
-    "y": 260,
+    "y": 340,
     "wires": [
       [
-        "m3_store_yesterday"
+        "m1_store_sun"
       ]
     ]
   },
   {
-    "id": "m3_store_yesterday",
+    "id": "m1_store_sun",
     "type": "function",
-    "z": "tab_matrix3",
-    "name": "Vortag",
-    "func": "var attrs = msg.attributes;\nif (attrs && attrs.new_state && attrs.new_state.attributes) {\n    var lp = parseFloat(attrs.new_state.attributes.last_period);\n    if (!isNaN(lp)) flow.set('m3_yesterday_kwh', lp);\n}",
+    "z": "tab_matrix1",
+    "name": "Speichere Sonnenstand",
+    "func": "// Sun state\nflow.set('m1_sun_state', msg.payload);\n\n// Extract sunrise/sunset from attributes\nvar attrs;\nif (msg.attributes && msg.attributes.new_state && msg.attributes.new_state.attributes) {\n    attrs = msg.attributes.new_state.attributes;\n} else if (msg.data && msg.data.new_state && msg.data.new_state.attributes) {\n    attrs = msg.data.new_state.attributes;\n}\n\nif (attrs) {\n    if (attrs.next_rising) {\n        flow.set('m1_next_rising', attrs.next_rising);\n    }\n    if (attrs.next_setting) {\n        flow.set('m1_next_setting', attrs.next_setting);\n    }\n    var sr = attrs.next_rising ? new Date(attrs.next_rising) : null;\n    var ss = attrs.next_setting ? new Date(attrs.next_setting) : null;\n    var srStr = sr ? String(sr.getHours()).padStart(2,'0') + ':' + String(sr.getMinutes()).padStart(2,'0') : '?';\n    var ssStr = ss ? String(ss.getHours()).padStart(2,'0') + ':' + String(ss.getMinutes()).padStart(2,'0') : '?';\n    node.status({text: msg.payload + ' | rise:' + srStr + ' set:' + ssStr});\n}",
     "outputs": 0,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 370,
-    "y": 260,
-    "wires": []
-  },
-  {
-    "id": "m3_comment_alerts",
-    "type": "comment",
-    "z": "tab_matrix3",
-    "name": "--- BENACHRICHTIGUNGEN SAMMELN (alle 5s) ---",
-    "info": "",
-    "x": 280,
-    "y": 330,
-    "wires": []
-  },
-  {
-    "id": "m3_inject_alerts",
-    "type": "inject",
-    "z": "tab_matrix3",
-    "name": "Alle 5 Sekunden",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "5",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "10",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 150,
-    "y": 380,
-    "wires": [
-      [
-        "m3_collect_alerts"
-      ]
-    ]
-  },
-  {
-    "id": "m3_collect_alerts",
-    "type": "function",
-    "z": "tab_matrix3",
-    "name": "Alerts nach Prioritaet sammeln",
-    "func": "// Sammle alle aktiven Alerts nach Prioritaet\n// Max 4 Zeichen pro Alert (64px = 10 Zeichen total)\nvar alerts = [];\nvar ha = global.get('homeassistant');\nif (!ha || !ha.homeAssistant || !ha.homeAssistant.states) {\n    flow.set('m3_alerts', alerts);\n    return null;\n}\nvar states = ha.homeAssistant.states;\n\nfunction getState(id) {\n    return states[id] ? states[id].state : '';\n}\nfunction isOn(id) {\n    return getState(id) === 'on';\n}\nfunction isEnabled(id) {\n    return isOn('input_boolean.' + id);\n}\n\n// PRIO 1: KRITISCH\nif (isEnabled('matrix3_thw_alarm') && isOn('binary_sensor.divera_alarm_aktiv')) {\n    alerts.push('ALM!');\n}\nif (isEnabled('matrix3_internet_offline')) {\n    var inet = getState('binary_sensor.fritz_box_6591_cable_vodafone_connection');\n    if (inet === 'off') alerts.push('NNET');\n}\n\n// PRIO 2: HOCH\nif (isEnabled('matrix3_nina_warnung')) {\n    var nina = parseInt(getState('sensor.nina_munchen_warnungen_anzahl')) || 0;\n    if (nina > 0) {\n        var txt = getState('sensor.nina_munchen_warnung_aktuell') || 'NINA';\n        alerts.push(txt.substring(0, 4));\n    }\n}\nif (isEnabled('matrix3_dwd_wetter')) {\n    var dwd = parseInt(getState('sensor.dwd_munchen_warnungen')) || 0;\n    if (dwd > 0) alerts.push('UNWT');\n}\nif (isEnabled('matrix3_hochwasser')) {\n    var pegel = parseFloat(getState('sensor.pegel_isar_muenchen')) || 0;\n    if (pegel > 600) alerts.push('HCHW');\n}\nif (isEnabled('matrix3_thw_rueckmeldung') && isOn('binary_sensor.divera_ruckmeldung_fallig')) {\n    alerts.push('THW!');\n}\nif (isEnabled('matrix3_netzwerk')) {\n    var netz = getState('sensor.netzwerk_status');\n    if (netz && netz !== 'Alles OK' && netz !== 'unknown' && netz !== 'unavailable') {\n        alerts.push('NETZ');\n    }\n}\n\n// PRIO 3: MITTEL\nif (isEnabled('matrix3_petkit')) {\n    var petkit = getState('sensor.petkit_status');\n    if (petkit && petkit !== 'ok' && petkit !== 'unknown' && petkit !== 'unavailable') {\n        alerts.push('KATZ');\n    }\n}\nif (isEnabled('matrix3_meshtastic')) {\n    var lastMsg = getState('sensor.mesh_letzte_nachricht');\n    var lastTime = getState('sensor.mesh_letzte_nachricht_zeit');\n    if (lastMsg && lastTime) {\n        var msgAge = (Date.now() - new Date(lastTime).getTime()) / 60000;\n        if (msgAge < 30 && msgAge >= 0) {\n            alerts.push('MESH');\n        }\n    }\n}\nif (isEnabled('matrix3_mesh_batterie')) {\n    var bats = ['mesh_gw_battery','mesh_supreme_battery','mesh_deck_battery','mesh_otn_battery'];\n    for (var i = 0; i < bats.length; i++) {\n        var bat = parseFloat(getState('sensor.' + bats[i])) || 100;\n        if (bat < 20 && bat > 0) {\n            alerts.push('B' + Math.round(bat));\n            break;\n        }\n    }\n}\nif (isEnabled('matrix3_waschmaschine') && isOn('input_boolean.waschmaschine_warten')) {\n    alerts.push('WSCH');\n}\nif (isEnabled('matrix3_trockner') && isOn('input_boolean.trockner_warten')) {\n    alerts.push('TRCK');\n}\n\n// PRIO 4: NIEDRIG\nif (isEnabled('matrix3_tibber_teuer')) {\n    var price = getState('sensor.tibber_price_level');\n    if (price === 'VERY_EXPENSIVE') alerts.push('TEUR');\n}\nif (isEnabled('matrix3_tibber_guenstig')) {\n    var price2 = getState('sensor.tibber_price_level');\n    if (price2 === 'VERY_CHEAP') alerts.push('BIL!');\n}\n\nflow.set('m3_alerts', alerts);\nreturn msg;",
-    "outputs": 1,
     "timeout": "",
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
     "x": 420,
-    "y": 380,
-    "wires": [
-      [
-        "m3_debug_alerts"
-      ]
-    ]
-  },
-  {
-    "id": "m3_debug_alerts",
-    "type": "debug",
-    "z": "tab_matrix3",
-    "name": "Alerts",
-    "active": false,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": true,
-    "complete": "true",
-    "targetType": "full",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 630,
-    "y": 380,
+    "y": 340,
     "wires": []
   },
   {
-    "id": "m3_comment_display",
-    "type": "comment",
-    "z": "tab_matrix3",
-    "name": "--- DISPLAY (jede Sekunde) ---",
-    "info": "",
-    "x": 220,
-    "y": 460,
+    "id": "m1_mqtt_power",
+    "type": "mqtt out",
+    "z": "tab_matrix1",
+    "name": "cmnd/Matrix1/Power",
+    "topic": "cmnd/Matrix1/Power",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_nuc",
+    "x": 800,
+    "y": 500,
     "wires": []
   },
   {
-    "id": "m3_inject",
-    "type": "inject",
-    "z": "tab_matrix3",
-    "name": "Jede Sekunde",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "1",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "12",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 140,
-    "y": 520,
-    "wires": [
-      [
-        "m3_display_logic"
-      ]
-    ]
-  },
-  {
-    "id": "m3_display_logic",
-    "type": "function",
-    "z": "tab_matrix3",
-    "name": "Links: Uhr/PV | Rechts: Alerts",
-    "func": "var watts = flow.get('m3_pv_watts') || 0;\nvar dailyKwh = flow.get('m3_daily_kwh') || 0;\nvar yesterdayKwh = flow.get('m3_yesterday_kwh') || 0;\nvar flashUntil = flow.get('m3_show_pv_until') || 0;\nvar now = Date.now();\nvar left = '';\n\n// === LINKE HAELFTE: Uhr / PV (max 5 Zeichen) ===\nif (now < flashUntil) {\n    if (watts >= 15) {\n        left = Math.round(watts) + 'W';\n    } else {\n        var kwh = (dailyKwh < 0.05 && yesterdayKwh > 0.05) ? yesterdayKwh : dailyKwh;\n        left = kwh.toFixed(1) + 'kW';\n    }\n} else {\n    var d = new Date();\n    var h = String(d.getHours()).padStart(2, '0');\n    var m = String(d.getMinutes()).padStart(2, '0');\n    var sep = (d.getSeconds() % 2 === 0) ? ':' : ' ';\n    left = h + sep + m;\n}\n\n// Links auf 5 Zeichen padden\nwhile (left.length < 5) left = left + ' ';\n\n// === RECHTE HAELFTE: Benachrichtigungen (max 4 Zeichen) ===\nvar alerts = flow.get('m3_alerts') || [];\nvar right = '';\nif (alerts.length > 0) {\n    var idx = Math.floor(Date.now() / 3000) % alerts.length;\n    right = alerts[idx].substring(0, 4);\n}\n\n// Kombinieren: links(5) + Leerzeichen + rechts(max 4) = max 10 Zeichen\nif (right) {\n    msg.payload = left + ' ' + right;\n} else {\n    msg.payload = left;\n}\nreturn msg;",
+    "id": "m1_total_watch",
+    "type": "server-state-changed",
+    "z": "tab_matrix1",
+    "name": "sensor.pv_energie_gesamt",
+    "server": "80ef547.fe1b7a8",
+    "version": 6,
     "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "flow.set('m3_pv_watts', 0);\nflow.set('m3_daily_kwh', 0);\nflow.set('m3_yesterday_kwh', 0);\nflow.set('m3_show_pv_until', 0);\nflow.set('m3_alerts', []);",
-    "finalize": "",
-    "libs": [],
-    "x": 410,
-    "y": 520,
-    "wires": [
-      [
-        "m3_mqtt_display",
-        "m3_debug"
-      ]
-    ]
-  },
-  {
-    "id": "m3_comment_flash",
-    "type": "comment",
-    "z": "tab_matrix3",
-    "name": "--- PV FLASH (60s Zyklus, 10s) ---",
-    "info": "",
-    "x": 230,
-    "y": 610,
-    "wires": []
-  },
-  {
-    "id": "m3_inject_flash",
-    "type": "inject",
-    "z": "tab_matrix3",
-    "name": "Alle 60 Sekunden",
-    "props": [
+    "exposeAsEntityConfig": "",
+    "entities": {
+      "entity": [
+        "sensor.pv_energie_gesamt"
+      ],
+      "substring": [],
+      "regex": []
+    },
+    "outputInitially": true,
+    "stateType": "num",
+    "ifState": "",
+    "ifStateType": "str",
+    "ifStateOperator": "is",
+    "outputOnlyOnStateChange": false,
+    "for": "0",
+    "forType": "num",
+    "forUnits": "seconds",
+    "ignorePrevStateNull": false,
+    "ignorePrevStateUnknown": false,
+    "ignorePrevStateUnavailable": false,
+    "ignoreCurrentStateUnknown": false,
+    "ignoreCurrentStateUnavailable": false,
+    "outputProperties": [
       {
-        "p": "payload"
+        "property": "payload",
+        "propertyType": "msg",
+        "value": "",
+        "valueType": "entityState"
       }
     ],
-    "repeat": "60",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "20",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 150,
-    "y": 660,
+    "x": 190,
+    "y": 320,
     "wires": [
       [
-        "m3_set_flash"
+        "m1_store_total"
       ]
     ]
   },
   {
-    "id": "m3_set_flash",
+    "id": "m1_store_total",
     "type": "function",
-    "z": "tab_matrix3",
-    "name": "Flash 10s",
-    "func": "flow.set('m3_show_pv_until', Date.now() + 10000);",
+    "z": "tab_matrix1",
+    "name": "Speichere Lebensleistung",
+    "func": "flow.set('m1_lifetime_kwh', parseFloat(msg.payload) || 0);",
     "outputs": 0,
     "timeout": "",
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
-    "x": 360,
-    "y": 660,
+    "x": 440,
+    "y": 320,
     "wires": []
   },
   {
-    "id": "m3_comment_dim",
-    "type": "comment",
-    "z": "tab_matrix3",
-    "name": "--- HELLIGKEIT ---",
-    "info": "",
-    "x": 170,
-    "y": 740,
-    "wires": []
+    "id": "80ef547.fe1b7a8",
+    "type": "server",
+    "name": "Home Assistant"
   },
   {
-    "id": "m3_dim_night",
-    "type": "inject",
-    "z": "tab_matrix3",
-    "name": "22:00 Dimmen",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "00 22 * * *",
-    "once": false,
-    "onceDelay": "",
-    "topic": "",
-    "payload": "1",
-    "payloadType": "num",
-    "x": 150,
-    "y": 790,
-    "wires": [
-      [
-        "m3_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m3_dim_day",
-    "type": "inject",
-    "z": "tab_matrix3",
-    "name": "07:00 Hell",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "00 07 * * *",
-    "once": false,
-    "onceDelay": "",
-    "topic": "",
-    "payload": "5",
-    "payloadType": "num",
-    "x": 140,
-    "y": 840,
-    "wires": [
-      [
-        "m3_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m3_dim_startup",
-    "type": "inject",
-    "z": "tab_matrix3",
-    "name": "Startup",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "",
-    "crontab": "",
-    "once": true,
-    "onceDelay": "12",
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 130,
-    "y": 890,
-    "wires": [
-      [
-        "m3_dim_check"
-      ]
-    ]
-  },
-  {
-    "id": "m3_dim_check",
-    "type": "function",
-    "z": "tab_matrix3",
-    "name": "Tag/Nacht",
-    "func": "var h = new Date().getHours();\nmsg.payload = (h >= 22 || h < 7) ? 1 : 5;\nreturn msg;",
-    "outputs": 1,
-    "timeout": "",
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 310,
-    "y": 890,
-    "wires": [
-      [
-        "m3_mqtt_dimmer"
-      ]
-    ]
-  },
-  {
-    "id": "m3_mqtt_dimmer",
-    "type": "mqtt out",
-    "z": "tab_matrix3",
-    "name": "cmnd/Matrix3/DisplayDimmer",
-    "topic": "cmnd/Matrix3/DisplayDimmer",
-    "qos": "0",
-    "retain": "false",
-    "respTopic": "",
-    "contentType": "",
-    "userProps": "",
-    "correl": "",
-    "expiry": "",
-    "broker": "mqtt_nuc",
-    "x": 430,
-    "y": 790,
-    "wires": []
-  },
-  {
-    "id": "m3_mqtt_display",
-    "type": "mqtt out",
-    "z": "tab_matrix3",
-    "name": "cmnd/Matrix3/DisplayText",
-    "topic": "cmnd/Matrix3/DisplayText",
-    "qos": "0",
-    "retain": "false",
-    "respTopic": "",
-    "contentType": "",
-    "userProps": "",
-    "correl": "",
-    "expiry": "",
-    "broker": "mqtt_nuc",
-    "x": 700,
-    "y": 500,
-    "wires": []
-  },
-  {
-    "id": "m3_debug",
-    "type": "debug",
-    "z": "tab_matrix3",
-    "name": "Matrix3 Debug",
-    "active": false,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": true,
-    "complete": "payload",
-    "targetType": "msg",
-    "statusVal": "payload",
-    "statusType": "auto",
-    "x": 690,
-    "y": 560,
-    "wires": []
+    "id": "mqtt_nuc",
+    "type": "mqtt-broker",
+    "name": "Mosquitto NUC-HA",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "nodered-wifibuttons",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true
   }
 ]
