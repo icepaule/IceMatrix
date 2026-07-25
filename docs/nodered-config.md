@@ -1,4 +1,6 @@
-# Node-RED Konfiguration für LED-Matrix Displays
+# Node-RED Konfiguration für LED-Matrix Displays (Matrix1-4)
+
+> Für Matrix5 (HUB75/ESP32-S3, TOTP-Anzeige) siehe [matrix5-totp.md](matrix5-totp.md) — läuft komplett ohne Node-RED/Tasmota auf eigener Firmware.
 
 ## Übersicht
 
@@ -8,28 +10,19 @@ Texte per MQTT an die Tasmota-Geräte.
 
 ## Architektur
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      Node-RED                           │
-│                                                         │
-│  ┌──────────┐   ┌──────────────┐   ┌────────────────┐  │
-│  │ HA State │──►│  Formatierung │──►│ MQTT Publisher │  │
-│  │ Changed  │   │  (Function)   │   │                │  │
-│  └──────────┘   └──────────────┘   └───────┬────────┘  │
-│                                             │           │
-│  ┌──────────┐   ┌──────────────┐            │           │
-│  │ Inject   │──►│  Dimmer      │────────────┤           │
-│  │ (Cron)   │   │  Tag/Nacht   │            │           │
-│  └──────────┘   └──────────────┘            │           │
-└─────────────────────────────────────────────┼───────────┘
-                                              │
-                              MQTT (Mosquitto <MQTT-IP>:1883)
-                                              │
-                    ┌─────────────────────────┼────────────────────┐
-                    │                         │                    │
-          cmnd/Matrix1/          cmnd/Matrix2/           cmnd/Matrix3/
-          DisplayText            DisplayText             DisplayText
-          DisplayDimmer          DisplayDimmer            DisplayDimmer
+```mermaid
+flowchart TB
+    subgraph NodeRED["Node-RED"]
+        A["HA State Changed"] --> B["Formatierung (Function)"]
+        C["Inject (Cron)"] --> D["Dimmer Tag/Nacht"]
+        B --> E["MQTT Publisher"]
+        D --> E
+    end
+    E --> F[("MQTT Mosquitto<br/>&lt;MQTT-IP&gt;:1883")]
+    F --> G1["cmnd/Matrix1/Display*"]
+    F --> G2["cmnd/Matrix2/Display*"]
+    F --> G3["cmnd/Matrix3/Display*"]
+    F --> G4["cmnd/Matrix4/Display*"]
 ```
 
 ## MQTT Topics
@@ -39,27 +32,28 @@ Texte per MQTT an die Tasmota-Geräte.
 | Matrix1 | `cmnd/Matrix1/DisplayText` | `cmnd/Matrix1/DisplayDimmer` |
 | Matrix2 | `cmnd/Matrix2/DisplayText` | `cmnd/Matrix2/DisplayDimmer` |
 | Matrix3 | `cmnd/Matrix3/DisplayText` | `cmnd/Matrix3/DisplayDimmer` |
-| LED-Matrix2 (ESPHome) | `led-matrix2/display/time` + `led-matrix2/display/pv` | - |
+| Matrix4 | `cmnd/Matrix4/DisplayText` | `cmnd/Matrix4/DisplayDimmer` |
+
+> **Hinweis**: Es existiert außerdem ein separates, unabhängiges Gerät `LED-Matrix2` (ESPHome, eigenes MQTT-Schema `led-matrix2/display/time` + `led-matrix2/display/pv`). Trotz des ähnlichen Namens **kein Teil der Matrix1-4-Familie** — anderes Protokoll, andere Firmware, nicht Tasmota.
 
 ## Flow: Matrix1 (PV-Matrix, Sonnenstand-basiert)
 
 **Tab**: `Matrix1 (PV-Matrix)`
-**Display**: 4 Module (32x8), Rot, ESP-12F, Standort Schuppen
+**Display**: 4 Module (32x8), Rot, ESP-12F
 
 ### Phasen-Logik (Sonnenstand-gesteuert)
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Tagesablauf                           │
-│                                                         │
-│  Nacht          ──► Display AUS                         │
-│  Sunrise - 30min ──► Vortags-Ertrag "4.5kW"  Dimmer 20│
-│  PV ≥ 30W       ──► Aktuelle Leistung "350W"          │
-│  PV < 30W        ──► Tagesertrag "3.2kW"              │
-│  Sonnenuntergang ──► Dimmer auf 10                      │
-│  21:00 - 22:00   ──► PV Lebensleistung "2.79M" (MWh)  │
-│  22:00            ──► Display AUS                       │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> off
+    off --> morning: Sunrise - 30min
+    morning --> producing: PV >= 30W
+    morning --> idle: PV < 30W
+    producing --> idle: PV < 30W
+    idle --> producing: PV >= 30W
+    producing --> lifetime: 21:00 Uhr
+    idle --> lifetime: 21:00 Uhr
+    lifetime --> off: 22:00 Uhr
 ```
 
 ### Phasen
@@ -115,21 +109,19 @@ if (mwh >= 100)  → "100M"    // gerundet
 **Tab**: `Matrix2 (Uhr + PV)`
 **Display**: 4 Module (32x8), Rot
 
-### Anzeige-Logik
+### Anzeige-Logik (60s-Zyklus)
 
-```
-┌──────────────────────────────────────────┐
-│ 50 Sekunden: Uhrzeit (Standard)          │
-│   "18:05" (blinkender Doppelpunkt)       │
-├──────────────────────────────────────────┤
-│ 10 Sekunden: PV-Daten (Flash)            │
-│   ≥15W:  "1234W"  (aktuelle Leistung)   │
-│   <15W:  "12.3kW" (Tagesertrag/Vortag)  │
-└──────────────────────────────────────────┘
-     ◄──────── 60s Zyklus ────────►
+```mermaid
+flowchart LR
+    A["0-50s: Uhrzeit<br/>'18:05' (blinkender Doppelpunkt)"] --> B["50-60s: PV-Flash<br/>&ge;15W: '1234W'<br/>&lt;15W: '12.3kW'"]
+    B --> A
 ```
 
 **Gleiche Datenquellen und Formatierung wie Matrix1, nur umgekehrte Priorität.**
+
+### Helligkeit
+
+3-stufiges Dimmer-Schema (Node-RED-Cron, kein HA): 07-20 Uhr = 15%, 20-22 Uhr = 5%, 22-07 Uhr = 1%.
 
 ---
 
@@ -140,62 +132,39 @@ if (mwh >= 100)  → "100M"    // gerundet
 
 ### Display-Layout
 
-```
-◄─── Rote Module (32px) ───►◄── Blaue Module (32px) ──►
-┌───────────────────────────┬──────────────────────────┐
-│  Linke Hälfte (5 Zeichen) │ Rechte Hälfte (4 Zeichen)│
-│  Uhrzeit / PV-Daten       │ Alert-Code (rotierend)   │
-│  "18:05"  oder  "1234W"   │ "THW!" oder "UNWT"       │
-└───────────────────────────┴──────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Panel["Matrix3 - 8 Module, 64px gesamt"]
+        L["Rote Module (32px)<br/>Linke Hälfte - 5 Zeichen<br/>Uhrzeit / PV-Daten<br/>z.B. '18:05' oder '1234W'"]
+        R["Blaue Module (32px)<br/>Rechte Hälfte - 4 Zeichen<br/>Alert-Code, rotierend<br/>z.B. 'THW!' oder 'UNWT'"]
+    end
 ```
 
-### Anzeige-Logik
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ LINKE HÄLFTE (5 Zeichen):                                   │
-│   50s Uhrzeit: "18:05" (blinkender Doppelpunkt)             │
-│   10s PV-Flash: "1234W" oder "12.3kW"                       │
-│                                                             │
-│ RECHTE HÄLFTE (4 Zeichen):                                  │
-│   Höchster aktiver Alert, rotiert alle 3 Sekunden           │
-│   Kein Alert → leer                                         │
-│                                                             │
-│ Kombiniert: "18:05 THW!" oder "1234W UNWT"                  │
-└─────────────────────────────────────────────────────────────┘
-```
+Kombiniert z.B. `"18:05 THW!"` oder `"1234W UNWT"`.
 
 ### Alert-System
 
 Alerts werden alle 5 Sekunden aus Home Assistant gesammelt und nach Priorität sortiert.
-Mehrere aktive Alerts rotieren alle 3 Sekunden.
-
-Jeder Alert kann per `input_boolean` in Home Assistant ein/ausgeschaltet werden.
+Mehrere aktive Alerts rotieren alle 3 Sekunden. Jeder Alert kann per `input_boolean` in Home Assistant ein/ausgeschaltet werden.
 
 #### Prioritäten und Quellen
 
-```
-PRIO 1 - KRITISCH (sofortige Aufmerksamkeit)
-├── ALM!  ← binary_sensor.divera_alarm_aktiv (THW-Alarm)
-└── NNET  ← binary_sensor.fritz_box_connection = off (Internet)
-
-PRIO 2 - HOCH (wichtige Warnungen)
-├── NINA  ← sensor.nina_munchen_warnungen_anzahl > 0
-├── UNWT  ← sensor.dwd_munchen_warnungen > 0
-├── HCHW  ← sensor.pegel_isar_muenchen > 600cm
-├── THW!  ← binary_sensor.divera_ruckmeldung_fallig
-└── NETZ  ← sensor.netzwerk_status ≠ "Alles OK"
-
-PRIO 3 - MITTEL (Info-Alerts)
-├── KATZ  ← sensor.petkit_status ≠ "ok"
-├── MESH  ← sensor.mesh_letzte_nachricht (< 30 min alt)
-├── Bxx   ← sensor.mesh_*_battery < 20%
-├── WSCH  ← input_boolean.waschmaschine_warten = on
-└── TRCK  ← input_boolean.trockner_warten = on
-
-PRIO 4 - NIEDRIG (Hinweise)
-├── TEUR  ← sensor.tibber_price_level = VERY_EXPENSIVE
-└── BIL!  ← sensor.tibber_price_level = VERY_CHEAP
+```mermaid
+flowchart TD
+    P1["PRIO 1 - KRITISCH"] --> P1a["ALM! ← binary_sensor.divera_alarm_aktiv"]
+    P1 --> P1b["NNET ← binary_sensor.fritz_box_connection = off"]
+    P2["PRIO 2 - HOCH"] --> P2a["NINA ← sensor.nina_muenchen_warnungen_anzahl &gt; 0"]
+    P2 --> P2b["UNWT ← sensor.dwd_muenchen_warnungen &gt; 0"]
+    P2 --> P2c["HCHW ← sensor.pegel_isar_muenchen &gt; 600cm"]
+    P2 --> P2d["THW! ← binary_sensor.divera_rueckmeldung_faellig"]
+    P2 --> P2e["NETZ ← sensor.netzwerk_status ≠ 'Alles OK'"]
+    P3["PRIO 3 - MITTEL"] --> P3a["KATZ ← sensor.petkit_status ≠ 'ok'"]
+    P3 --> P3b["MESH ← sensor.mesh_letzte_nachricht &lt; 30min alt"]
+    P3 --> P3c["Bxx ← sensor.mesh_x_battery &lt; 20%"]
+    P3 --> P3d["WSCH ← input_boolean.waschmaschine_warten = on"]
+    P3 --> P3e["TRCK ← input_boolean.trockner_warten = on"]
+    P4["PRIO 4 - NIEDRIG"] --> P4a["TEUR ← sensor.tibber_price_level = VERY_EXPENSIVE"]
+    P4 --> P4b["BIL! ← sensor.tibber_price_level = VERY_CHEAP"]
 ```
 
 #### HA Input Booleans (Alert-Toggles)
@@ -216,6 +185,40 @@ PRIO 4 - NIEDRIG (Hinweise)
 | `input_boolean.matrix3_trockner` | Trockner fertig |
 | `input_boolean.matrix3_tibber_teuer` | Tibber teuer |
 | `input_boolean.matrix3_tibber_guenstig` | Tibber günstig |
+
+Alle 14 Toggles defaulten auf `initial: false` (siehe [config/homeassistant/matrix3_notifications.yaml](../config/homeassistant/matrix3_notifications.yaml)) — jeder Alert muss aktiv eingeschaltet werden, keiner ist standardmäßig aktiv.
+
+### PV-Flash-Fenster
+
+Alle 60 Sekunden für 15 Sekunden wird die linke Hälfte auf PV-Daten umgeschaltet, sonst zeigt sie die Uhrzeit.
+
+---
+
+## Flow: Matrix4 (Strompreis)
+
+**Tab**: `Matrix4 (Strompreis)`
+**Display**: 4 Module (32x8), Rot, Wemos D1 Mini
+**ESP-Standort**: intern, Bad!IoT/VLAN12 (DHCP)
+
+### Anzeige-Logik
+
+```mermaid
+flowchart LR
+    A["sensor.paule_current_electricity_price"] --> D["Strompreis-Anzeige (Function)"]
+    B["sensor.paule_price_trend_1h"] --> D
+    C1["binary_sensor.paule_best_price_period"] --> D
+    C2["binary_sensor.paule_peak_price_period"] --> D
+    D --> E["Preis in ct + Trend-Pfeil + Best/Peak-Marker"]
+    E --> F["cmnd/Matrix4/DisplayText"]
+```
+
+- **Preis**: aktueller Tibber-Preis in ct/kWh
+- **Trend-Pfeil**: `^` (steigend) / `v` (fallend) / `-` (stabil), aus `price_trend_1h`
+- **Best/Peak-Marker**: markiert günstigstes bzw. teuerstes Preisfenster des Tages
+
+### Helligkeit
+
+Gleiches Tag/Nacht-Dimmer-Schema wie Matrix2/3: 22:00 Uhr abdimmen, 07:00 Uhr wieder aufhellen.
 
 ---
 
@@ -250,7 +253,7 @@ Mit `USE_UTF8_LATIN1`: zusätzlich Umlaute (ä, ö, ü, ß, etc.)
 
 ## Node-RED Import
 
-Die Flows können aus `config/nodered/matrix_flows.json` importiert werden:
+Die Flows können aus `config/nodered/matrix_flows.json` importiert werden (enthält alle 4 Tabs Matrix1-4 + benötigte Config-Nodes):
 
 1. Node-RED öffnen
 2. Hamburger-Menü → Import
@@ -260,5 +263,5 @@ Die Flows können aus `config/nodered/matrix_flows.json` importiert werden:
 ### Voraussetzungen
 
 - Node `node-red-contrib-home-assistant-websocket` installiert
-- MQTT-Broker konfiguriert (Mosquitto auf <MQTT-IP>:1883)
-- Home Assistant Sensoren vorhanden (PV, Divera, NINA, etc.)
+- MQTT-Broker konfiguriert (Mosquitto, intern erreichbar)
+- Home Assistant Sensoren vorhanden (PV, Tibber, Divera, NINA, etc.)

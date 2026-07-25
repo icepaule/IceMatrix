@@ -1,8 +1,7 @@
-# IceMatrix - MAX7219 LED Matrix Displays mit Tasmota & Home Assistant
+# IceMatrix - LED Matrix Displays mit Tasmota, ESP32 & Home Assistant
 
-Steuerung von MAX7219 8x8 LED Dot-Matrix Displays über Tasmota, Node-RED und Home Assistant.
-
-![Overview](docs/images/overview.png)
+Steuerung mehrerer LED-Matrix-Displays über Tasmota, Node-RED und Home Assistant —
+plus ein eigenständiges ESP32-S3-Projekt (Matrix5) mit HUB75-RGB-Panels für TOTP/2FA-Codes.
 
 ## Hardware
 
@@ -12,8 +11,12 @@ Steuerung von MAX7219 8x8 LED Dot-Matrix Displays über Tasmota, Node-RED und Ho
 | Matrix2 | 4x MAX7219 (32x8) | Rot | ESP-12F | Uhrzeit + PV-Leistung |
 | Matrix3 | 8x MAX7219 (64x8) | 4x Rot + 4x Blau | Wemos D1 Mini | Uhrzeit + PV + Alerts |
 | Matrix4 (Strompreis) | 4x MAX7219 (32x8) | Rot | Wemos D1 Mini | Tibber Strompreis + Trend |
+| **Matrix5 (2FA-Anzeige)** | 2x HUB75 P4-2121-64x32-16S | RGB | **ESP32-S3** | TOTP/2FA-Codes (eigene Firmware, kein Tasmota) |
 
-## Verkabelung
+Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Kette, eigene C++/PlatformIO-Firmware statt Tasmota) und deshalb separat dokumentiert:
+→ [Matrix5: TOTP/2FA-Anzeige](docs/matrix5-totp.md)
+
+## Verkabelung (Matrix1-4, MAX7219)
 
 ### Wemos D1 Mini (Matrix3, Matrix4)
 
@@ -38,23 +41,28 @@ Steuerung von MAX7219 8x8 LED Dot-Matrix Displays über Tasmota, Node-RED und Ho
 > **Wichtig**: ESP-12F hat andere GPIO-Zuordnungen als Wemos D1 Mini!
 > `Module` muss auf `0 (Generic)` stehen, da `Module 1 (Sonoff Basic)` GPIO-Overrides ignoriert.
 
-## Architektur
+Verkabelung für Matrix5 (HUB75/ESP32-S3): siehe [docs/matrix5-totp.md](docs/matrix5-totp.md) inkl. grafischem Verkabelungsplan.
 
-```
-Home Assistant ──► Node-RED ──► MQTT (Mosquitto) ──► Tasmota ESP8266 ──► MAX7219 Matrix
-     │                │
-     │  Sensoren:     │  Formatierung:
-     │  - PV Leistung │  - Uhrzeit (HH:MM)
-     │  - Tibber      │  - PV Watt/kWh
-     │  - NINA/DWD    │  - Alert-Codes (4 Zeichen)
-     │  - Divera THW  │
-     │  - Netzwerk    │  MQTT Topics:
-     │  - Petkit      │  cmnd/<name>/DisplayText
-     │  - Meshtastic  │  cmnd/<name>/DisplayDimmer
-     └────────────────┘
+## Architektur (Matrix1-4)
+
+```mermaid
+flowchart LR
+    subgraph HA["Home Assistant"]
+        S1["PV Leistung"]
+        S2["Tibber"]
+        S3["NINA / DWD"]
+        S4["Divera THW"]
+        S5["Netzwerk"]
+        S6["Petkit"]
+        S7["Meshtastic"]
+    end
+    HA --> NR["Node-RED<br/>Formatierung: Uhrzeit, PV Watt/kWh, Alert-Codes"]
+    NR -->|"cmnd/&lt;name&gt;/DisplayText<br/>cmnd/&lt;name&gt;/DisplayDimmer"| MQTT[("MQTT<br/>Mosquitto")]
+    MQTT --> T1["Tasmota ESP8266"]
+    T1 --> M["MAX7219 Matrix"]
 ```
 
-## Custom Firmware (Pflicht!)
+## Custom Firmware (Pflicht für Matrix1-4!)
 
 Die Standard-Tasmota-Firmware (`tasmota-display.bin`) enthält **NICHT** den MAX7219 Dot-Matrix-Treiber!
 Sie enthält nur `USE_DISPLAY_MAX7219` (7-Segment), nicht `USE_DISPLAY_MAX7219_MATRIX` (Dot-Matrix).
@@ -99,20 +107,34 @@ Jedes Display hat einen eigenen Node-RED Flow:
 IceMatrix/
 ├── README.md                          # Diese Datei
 ├── docs/
-│   ├── custom-build.md                # Schritt-für-Schritt Build-Anleitung
-│   └── nodered-config.md              # Node-RED Flow Dokumentation
+│   ├── custom-build.md                # Schritt-für-Schritt Build-Anleitung (Matrix1-4)
+│   ├── nodered-config.md              # Node-RED Flow Dokumentation (Matrix1-4)
+│   ├── matrix5-totp.md                # Matrix5: HUB75/ESP32-S3 TOTP-Projekt
+│   └── images/                        # Fotos + Verkabelungsplan
 ├── firmware/
-│   └── tasmota-display.bin            # Fertige Custom-Firmware (v14.4.1)
+│   └── tasmota-display.bin            # Fertige Custom-Firmware (v14.4.1, Matrix1-4)
 ├── config/
 │   ├── tasmota/
 │   │   ├── user_config_override.h     # PlatformIO Build-Override
 │   │   └── platformio_override.ini    # PlatformIO Environment-Config
 │   ├── nodered/
-│   │   └── matrix_flows.json          # Exportierte Node-RED Flows
+│   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-4)
 │   └── homeassistant/
 │       └── matrix3_notifications.yaml # HA Package für Alert-Toggles
-└── images/                            # Dokumentations-Grafiken
+└── images/                            # (unbenutzt, siehe docs/images/)
 ```
+
+## Fotos
+
+Noch ausstehend — sobald verfügbar, kommen sie hier + in den jeweiligen Docs-Abschnitt rein:
+
+| Display | Datei (geplant) |
+|---------|------------------|
+| Matrix1 | `docs/images/matrix1.jpg` |
+| Matrix2 | `docs/images/matrix2.jpg` |
+| Matrix3 | `docs/images/matrix3.jpg` |
+| Matrix4 | `docs/images/matrix4.jpg` |
+| Matrix5 | `docs/images/matrix5.jpg` |
 
 ## Lessons Learned
 
@@ -124,3 +146,4 @@ IceMatrix/
 6. **ESP-12F hat andere GPIO-Pins als Wemos D1 Mini** - CLK=GPIO16, DIN=GPIO4, CS=GPIO5
 7. **Module muss 0 (Generic) sein** bei ESP-12F - Module 1 (Sonoff Basic) ignoriert GPIO-Overrides
 8. **Utility-Meter auf Tasmota ENERGY.Today ist unzuverlässig** - Besser direkt Tasmota-Sensoren nutzen (pv_energie_gestern, pv_energie_heute)
+9. **Keine echten Zugangsdaten/internen IPs in öffentlichen Doku-Commits** - auch nicht in früheren Commits, die später "nur" im aktuellen Stand redigiert wurden. Git-History bleibt bei public Repos dauerhaft einsehbar, solange sie nicht aktiv bereinigt wird (`git filter-repo` + Force-Push, ggf. GitHub-Support für Cache-Purge des alten Commits)

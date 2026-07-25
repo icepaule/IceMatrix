@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="boardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d5a3d"/>
+      <stop offset="100%" stop-color="#1f4029"/>
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="psuGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a4a4a"/>
+      <stop offset="100%" stop-color="#2b2b2b"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#333"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="800" fill="#f7f7f5"/>
+  <text x="500" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">Matrix5 — Verkabelungsplan (ESP32-S3 + 2x HUB75 P4-2121-64x32)</text>
+
+  <!-- PSU -->
+  <g>
+    <rect x="40" y="620" width="180" height="110" rx="10" fill="url(#psuGrad)" stroke="#111" stroke-width="2"/>
+    <text x="130" y="660" text-anchor="middle" font-size="15" font-weight="600" fill="#fff">5V Netzteil</text>
+    <text x="130" y="680" text-anchor="middle" font-size="12" fill="#ddd">min. 6-10A</text>
+    <text x="130" y="696" text-anchor="middle" font-size="12" fill="#ddd">getrennt von USB!</text>
+    <circle cx="70" cy="716" r="5" fill="#e74c3c"/>
+    <text x="82" y="720" font-size="11" fill="#f5b7b1">5V</text>
+    <circle cx="130" cy="716" r="5" fill="#555"/>
+    <text x="142" y="720" font-size="11" fill="#ccc">GND</text>
+  </g>
+
+  <!-- ESP32-S3 board -->
+  <g>
+    <rect x="40" y="120" width="230" height="420" rx="14" fill="url(#boardGrad)" stroke="#0d2414" stroke-width="2"/>
+    <text x="155" y="155" text-anchor="middle" font-size="16" font-weight="700" fill="#eafff0">ESP32-S3</text>
+    <text x="155" y="175" text-anchor="middle" font-size="12" fill="#bfe8cc">DevKitC-1</text>
+    <rect x="60" y="195" width="190" height="60" rx="4" fill="#111" stroke="#444"/>
+    <text x="155" y="230" text-anchor="middle" font-size="11" fill="#8bd6a0">USB-C (nur Strom/Flash,</text>
+    <text x="155" y="244" text-anchor="middle" font-size="11" fill="#8bd6a0">nicht für Panel-Strom!)</text>
+
+    <!-- GPIO pin list -->
+    <g font-size="12" fill="#eafff0">
+      <text x="60" y="285">GPIO4  → R1</text>
+      <text x="60" y="303">GPIO5  → G1</text>
+      <text x="60" y="321">GPIO6  → B1</text>
+      <text x="60" y="339">GPIO7  → R2</text>
+      <text x="60" y="357">GPIO15 → G2</text>
+      <text x="60" y="375">GPIO16 → B2</text>
+      <text x="60" y="393">GPIO17 → A</text>
+      <text x="60" y="411">GPIO18 → B</text>
+      <text x="60" y="429">GPIO8  → C</text>
+      <text x="60" y="447">GPIO9  → D</text>
+      <text x="60" y="465">GPIO11 → LAT</text>
+      <text x="60" y="483">GPIO12 → OE</text>
+      <text x="60" y="501">GPIO13 → CLK</text>
+    </g>
+    <text x="155" y="525" text-anchor="middle" font-size="10" fill="#9fd6ac">(GPIO10 = E, unbenutzt bei 1/16-Scan)</text>
+  </g>
+
+  <!-- Panel 1 -->
+  <g>
+    <rect x="620" y="90" width="320" height="180" rx="8" fill="url(#panelGrad)" stroke="#000" stroke-width="2"/>
+    <text x="780" y="125" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Panel 1 (oben)</text>
+    <text x="780" y="145" text-anchor="middle" font-size="12" fill="#aaa">P4-2121-64x32-16S-HL1.0</text>
+    <text x="780" y="163" text-anchor="middle" font-size="12" fill="#aaa">= Account A</text>
+    <rect x="640" y="185" width="40" height="16" fill="#333" stroke="#666"/>
+    <text x="660" y="197" text-anchor="middle" font-size="9" fill="#ccc">IN</text>
+    <rect x="880" y="185" width="40" height="16" fill="#333" stroke="#666"/>
+    <text x="900" y="197" text-anchor="middle" font-size="9" fill="#ccc">OUT</text>
+    <circle cx="650" cy="240" r="4" fill="#e74c3c"/><text x="662" y="244" font-size="10" fill="#f5b7b1">5V</text>
+    <circle cx="700" cy="240" r="4" fill="#555"/><text x="712" y="244" font-size="10" fill="#ccc">GND</text>
+    <text x="900" y="244" text-anchor="end" font-size="9" fill="#7fbf7f">1000-2200uF Elko am Panel!</text>
+  </g>
+
+  <!-- Panel 2 -->
+  <g>
+    <rect x="620" y="330" width="320" height="180" rx="8" fill="url(#panelGrad)" stroke="#000" stroke-width="2"/>
+    <text x="780" y="365" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Panel 2 (unten)</text>
+    <text x="780" y="385" text-anchor="middle" font-size="12" fill="#aaa">P4-2121-64x32-16S-HL1.0</text>
+    <text x="780" y="403" text-anchor="middle" font-size="12" fill="#aaa">= Account B</text>
+    <rect x="640" y="425" width="40" height="16" fill="#333" stroke="#666"/>
+    <text x="660" y="437" text-anchor="middle" font-size="9" fill="#ccc">IN</text>
+    <circle cx="650" cy="480" r="4" fill="#e74c3c"/><text x="662" y="484" font-size="10" fill="#f5b7b1">5V</text>
+    <circle cx="700" cy="480" r="4" fill="#555"/><text x="712" y="484" font-size="10" fill="#ccc">GND</text>
+    <text x="900" y="484" text-anchor="end" font-size="9" fill="#7fbf7f">1000-2200uF Elko am Panel!</text>
+  </g>
+
+  <!-- optional level shifter -->
+  <g>
+    <rect x="330" y="270" width="140" height="60" rx="6" fill="#e8e8e8" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="400" y="295" text-anchor="middle" font-size="12" fill="#333">74HCT245</text>
+    <text x="400" y="311" text-anchor="middle" font-size="10" fill="#666">Levelshifter (empf.)</text>
+  </g>
+
+  <!-- Data ribbon: ESP32 -> Panel1 IN -->
+  <path d="M270,290 C 400,290 450,180 620,193" fill="none" stroke="#2980b9" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="430" y="180" font-size="11" fill="#2980b9" font-weight="600">HUB75-Ribbon (14 Signale)</text>
+
+  <!-- Chain: Panel1 OUT -> Panel2 IN -->
+  <path d="M920,201 C 970,201 970,420 660,433" fill="none" stroke="#2980b9" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="900" y="300" font-size="11" fill="#2980b9" font-weight="600">Chain OUT→IN</text>
+
+  <!-- Power: PSU -> Panel1 (routed below/right of ESP32 board, never crossing it) -->
+  <path d="M100,620 L100,560 L600,560 L600,240 L640,240" fill="none" stroke="#e74c3c" stroke-width="3"/>
+  <!-- Power: PSU -> Panel2 -->
+  <path d="M130,620 L130,575 L612,575 L612,480 L640,480" fill="none" stroke="#e74c3c" stroke-width="3"/>
+  <!-- GND common ESP32/PSU (short link in the gap between board and PSU) -->
+  <path d="M155,540 L155,620" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5,4"/>
+
+  <!-- Legend -->
+  <g transform="translate(700,545)">
+    <rect x="0" y="0" width="240" height="40" fill="#fff" stroke="#ccc"/>
+    <line x1="10" y1="12" x2="40" y2="12" stroke="#2980b9" stroke-width="3"/>
+    <text x="46" y="16" font-size="11" fill="#333">HUB75-Datensignale</text>
+    <line x1="10" y1="28" x2="40" y2="28" stroke="#e74c3c" stroke-width="3"/>
+    <text x="46" y="32" font-size="11" fill="#333">5V-Einspeisung (separat je Panel!)</text>
+  </g>
+
+  <text x="500" y="775" text-anchor="middle" font-size="11" fill="#666">Pinbelegung als Startpunkt — gegen das konkrete Board-Pinout prüfen (Octal-PSRAM: GPIO 33-37 meiden, Strapping: 0/3/45/46, USB: 19/20)</text>
+</svg>
