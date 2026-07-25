@@ -1,66 +1,98 @@
 # Matrix5 — TOTP/2FA-Anzeige (HUB75 + ESP32-S3)
 
-Zeigt die aktuellen TOTP/2FA-Codes (wie Google Authenticator) auf zwei RGB-LED-Panels an,
+Zeigt die aktuellen TOTP/2FA-Codes (wie Google Authenticator) auf einem RGB-LED-Panel an,
 damit man beim Login nicht jedes Mal zum Handy greifen muss. Läuft komplett unabhängig von
 Tasmota/Node-RED/Home Assistant auf einer eigenen ESP32-S3-Firmware.
 
-**Status**: Hardware erkannt und getestet (WLAN/NTP-Smoketest erfolgreich), Firmware für die
-eigentliche TOTP-Anzeige noch nicht final geflasht.
+**Status**: Hardware identifiziert, WLAN/NTP-Smoketest erfolgreich. Firmware für die eigentliche
+TOTP-Anzeige noch nicht final geflasht.
 
-![Rückseite der beiden Panels, Datenkette und Stromanschluss](images/matrix5-panels-rueckseite.jpg)
+![Rückseite des Panels: DATA_IN-Ribbon links, DATA_OUT-Header + Stromanschluss rechts](images/matrix5-panels-rueckseite.jpg)
 
-Die beiden Panels kommen als **ein zusammenhängendes Rahmenteil, Seite an Seite montiert**
-(nicht übereinander gestapelt, wie ursprünglich angenommen). Auf dem Foto gut zu erkennen:
-- links das Panel mit dem Flachbandkabel (HUB75-Datenkette, kommt vom Controller/`DATA_IN`)
-- rechts das zweite Panel mit dem Aufdruck `P4-2121-64*32-16S-HL1.0` (bestätigt die Modul-Identifikation) und einem separaten 4-poligen VCC/GND-Steckverbinder für die Stromeinspeisung
-- beide Module haben identische Chip-Bestückung, Pfeil-Orientierungsmarkierung und Eck-Bohrungen zur gemeinsamen Rahmenmontage
+**Korrektur (nach genauerem Blick aufs Foto): es ist nur EIN Panel**, keine zwei geketteten
+64x32-Panels. Was wie zwei separate Module aussieht, ist die Treiberelektronik eines einzelnen
+64x32-Panels, auf zwei baugleiche PCB-Hälften verteilt (normal bei dieser Baugröße, jede Hälfte
+hat ihre eigenen Shift-Register-/Treiber-ICs). Erkennbar am gemeinsamen Rahmen mit durchgehenden
+Eckbohrungen und daran, dass der Teile-Aufdruck `P4-2121-64*32-16S-HL1.0` (64x32 Pixel gesamt)
+nur einmal vorkommt.
 
-Für die gewünschte **Hochkant-Aufstellung** wird die komplette 128×32-Einheit als Ganzes um 90°
-gedreht montiert (dann effektiv 32 breit × 128 hoch) — die Software kompensiert das per
-`setRotation()`, keine Änderung an der Verkabelung nötig.
+Auf dem Foto:
+- **links**: graues Flachbandkabel, bereits in eine weiße 16-polige IDC-Buchse gesteckt, beschriftet `DATA_IN` — **das ist der Anschluss, der zum ESP32 geht.**
+- **rechts**: ein unbestückter 16-poliger Stiftleisten-Header, beschriftet `DATA_OUT` — für die Verkettung an ein *zweites* Panel, falls später erweitert wird. **Bleibt bei nur einem Panel unbenutzt, nicht anschließen.**
+- **rechts daneben**: 4-poliger VCC/GND-Steckverbinder mit rot/schwarzen Adern — Stromeinspeisung (5V/GND), **geht zum Netzteil, nicht zum ESP32**
 
 ## Warum kein Tasmota / ESPHome
 
-Die Panels sind HUB75(E)-RGB-LED-Module (siehe unten) — die brauchen eine kontinuierliche,
-hochfrequente DMA-Ansteuerung. Tasmota hat dafür keinen Treiber (nur MAX7219/OLED/Nextion-artige
-Displays). ESPHome hat zwar einen `hub75`-Component, aber keine TOTP/HMAC-Funktion eingebaut —
-das müsste per Custom-C++-Component nachgerüstet werden, was am Ende genauso viel Aufwand ist
-wie eine eigene Firmware. Deshalb: PlatformIO/Arduino-C++ direkt auf dem ESP32-S3.
+HUB75(E)-RGB-LED-Module brauchen eine kontinuierliche, hochfrequente DMA-Ansteuerung. Tasmota hat
+dafür keinen Treiber (nur MAX7219/OLED/Nextion-artige Displays). ESPHome hat zwar einen
+`hub75`-Component, aber keine TOTP/HMAC-Funktion eingebaut — das müsste per Custom-C++-Component
+nachgerüstet werden, was am Ende genauso viel Aufwand ist wie eine eigene Firmware. Deshalb:
+PlatformIO/Arduino-C++ direkt auf dem ESP32-S3.
 
 ## Hardware
 
 | Teil | Spezifikation |
 |------|---------------|
-| Panel (x2) | P4-2121-64x32-16S-HL1.0 — 4mm Pitch, 64x32px, 1/16-Scan, HUB75(E) |
+| Panel | P4-2121-64x32-16S-HL1.0 — 4mm Pitch, 64x32px, 1/16-Scan, HUB75(E), 1 Stück |
 | Controller | ESP32-S3 (embedded PSRAM), Arduino/PlatformIO |
-| Anzeige | 2 Panels = 2 Accounts gleichzeitig sichtbar (Seite an Seite, als 128x32-Einheit gekettet) |
+| Anzeige | 1 Panel = 1 Account permanent sichtbar, oder mehrere Accounts im Wechsel (Timer) |
 
-## Verkabelungsplan
+## Verkabelungsplan — Pin für Pin
 
-![Matrix5 Verkabelungsplan](images/matrix5-wiring.svg)
+![Matrix5 Pin-Zuordnung ESP32 ↔ HUB75](images/matrix5-wiring.svg)
 
-- **Stromversorgung getrennt vom Datenkabel einspeisen** — jedes Panel bekommt eigene 5V/GND-Adern direkt vom Netzteil, nicht über das dünne HUB75-Ribbon. Pro Panel bis zu ~2,5A Spitzenlast bei voller Helligkeit.
-- **1000-2200µF-Elko** auf der Rückseite jedes Panels zwischen 5V/GND (gegen Spannungseinbrüche).
+**Nur die `DATA_IN`-Buchse (16-polig, links auf dem Foto) wird mit dem ESP32 verbunden.** Standard-HUB75-Pinbelegung (16-pol., zickzack-nummeriert — Pin 1 meist durch eine rote Ader oder eine Kerbe/Nase am Steckergehäuse markiert, unbedingt vor dem Anschließen prüfen, sonst ist die ganze Zuordnung um 1 verschoben):
+
+| Ribbon-Pin | Signal | ESP32-Pin (Zahl auf dem Board) |
+|---|---|---|
+| 1 | R1 | 4 |
+| 2 | G1 | 5 |
+| 3 | B1 | 6 |
+| 4 | GND | GND |
+| 5 | R2 | 7 |
+| 6 | G2 | 15 |
+| 7 | B2 | 16 |
+| 8 | GND | GND |
+| 9 | A | 17 |
+| 10 | B | 18 |
+| 11 | C | 8 |
+| 12 | D | 9 |
+| 13 | CLK | 13 |
+| 14 | LAT (STB) | 11 |
+| 15 | OE | 12 |
+| 16 | GND | GND |
+
+Diese Tabelle ist der **Standard-16-pol.-HUB75(E)-Belegung** entnommen (passt zu einem 1/16-Scan-Panel mit A-D-Adresslinien, kein E nötig — Pinzahl 16 statt 20 bestätigt das). Trotzdem: **am eigenen Kabel die Pin-1-Markierung verifizieren**, bevor irgendwas angeschlossen wird — Fotos/Silkscreen-Aufdrucke variieren je Hersteller/Charge.
+
+Weitere Punkte:
+- **`DATA_OUT`-Header (rechts, 16-pol., unbestückt) bleibt unbenutzt** — nur relevant, falls später ein zweites Panel angekettet wird.
+- **4-poliger VCC/GND-Steckverbinder** ist die Stromversorgung — geht ans Netzteil (siehe unten), nicht an den ESP32-Datenbus.
+- **1000-2200µF-Elko** auf der Panel-Rückseite zwischen 5V/GND (gegen Spannungseinbrüche), falls nicht schon werksseitig verbaut.
 - **Pegelwandler (74HCT245) empfohlen**: ESP32-S3 liefert 3,3V-Logik, HUB75-Panels erwarten 5V — bei kurzen Kabeln funktioniert es oft auch ohne, mit Levelshifter ist das Bild stabiler.
-- **Gemeinsame Masse** zwischen Netzteil und ESP32-S3 nicht vergessen.
-- Zwei Panels werden als **eine Kette** betrieben (Panel links `DATA_IN` vom Controller, Panel links `DATA_OUT` → Panel rechts `DATA_IN`), nicht als zwei getrennte Busse — die Software behandelt sie über einen `VirtualMatrixPanel` (Chain-Type horizontal, links→rechts) als eine durchgehende 128x32-Canvas.
-- Jedes Panel hat einen **eigenen 4-poligen VCC/GND-Steckverbinder** (auf dem Foto rechts sichtbar) — beide trotzdem einzeln vom Netzteil einspeisen, nicht nur eines und den Rest über die Kettenverbindung "durchschleifen".
+- **Gemeinsame Masse** zwischen Netzteil und ESP32-S3 nicht vergessen (siehe Stromversorgung unten).
 
-### GPIO-Beispielbelegung (ESP32-S3, generisch)
+### Stromversorgung — geht das mit nur einem Netzteil?
 
-| Signal | GPIO | Signal | GPIO |
-|---|---|---|---|
-| R1 | 4 | A | 17 |
-| G1 | 5 | B | 18 |
-| B1 | 6 | C | 8 |
-| R2 | 7 | D | 9 |
-| G2 | 15 | LAT | 11 |
-| B2 | 16 | OE | 12 |
-| E (unbenutzt bei 1/16-Scan) | 10 | CLK | 13 |
+Ja, aber **nicht indem der Panel-Strom durchs ESP32-Board geleitet wird** (also nicht: Netzteil →
+ESP32-USB-Port → 5V-Pin des ESP32 → Panel). Das 5V-Pin eines Dev-Boards ist meist nur für kleine
+Zusatzverbraucher gedacht (dünne Leiterbahn/Pad, teils mit Mini-Sicherung auf der 5V-Schiene) —
+für ein LED-Panel mit ein paar Ampere Spitzenlast nicht ausgelegt, selbst wenn das Netzteil selbst
+das liefern könnte.
 
-Getestet gegen ein reales Board (ESP32-S3, embedded 8MB PSRAM): diese Pins liegen außerhalb der
-PSRAM-reservierten GPIOs (33-37), der Strapping-Pins (0/3/45/46) und der USB-Pins (19/20) — vor
-dem Nachbau trotzdem gegen das eigene Board-Pinout prüfen, insbesondere bei Octal-PSRAM-Varianten.
+**Stattdessen**: ein einziges 5V-Netzteil nehmen und **direkt an der Quelle auf zwei Adernpaare
+aufteilen** — ein Paar geht auf den 5V/GND-Pin des ESP32 (Board dann *nicht* zusätzlich über USB
+mit Strom versorgen, nur noch fürs Flashen per USB anstecken), das andere Paar direkt auf den
+4-poligen VCC/GND-Stecker des Panels. Beide Adernpaare kommen vom selben Netzteil, aber keines
+läuft durch das ESP32-Board durch — elektrisch sauber, und trotzdem nur ein Stecker in der
+Steckdose.
+
+**Zur Dimensionierung**: ein reines P4-64x32-Panel kann bei voller Helligkeit/komplett weißem
+Bild kurzzeitig 3-4A ziehen — ein 2,0A-USB-Netzteil reicht dafür im Extremfall nicht.
+Für die TOTP-Anzeige (dünne Ziffern auf überwiegend schwarzem Hintergrund, kein Vollbild) liegt
+der reale Verbrauch deutlich niedriger, aber sicherheitshalber:
+- Netzteil mit **mindestens 3A, besser 4A** bei 5V wählen (Aufpreis minimal, Sicherheitsmarge groß)
+- Helligkeit in der Software moderat begrenzen (`setBrightness8()`, z.B. 40-60 von 255) statt auf Maximum zu laufen
+- Falls unbedingt bei 2,0A bleiben soll: nur mit niedriger Helligkeit betreiben und im Zweifel mit einem Multimeter den realen Stromverbrauch bei eurem tatsächlichen Anzeigeinhalt messen, bevor ihr euch drauf verlasst
 
 ## Software-Architektur
 
@@ -70,8 +102,7 @@ flowchart LR
     Time --> TOTP["TOTP-Berechnung<br/>HMAC-SHA1 (mbedtls) je Account"]
     Secrets["secrets.h<br/>(lokal, nie committen!)"] --> TOTP
     TOTP --> Render["Rendering: Name + 6-stelliger Code<br/>+ Restzeit-Balken"]
-    Render --> P1v["Panel links = Account A"]
-    Render --> P2v["Panel rechts = Account B"]
+    Render --> P1["1 Panel (64x32)<br/>1 Account, oder mehrere im Wechsel"]
 ```
 
 Wichtig: VLAN12 (Bad!IoT) blockt externes NTP (UDP/123) nach außen — die interne Gateway-IP
@@ -79,6 +110,9 @@ muss in der NTP-Serverliste **zuerst** stehen, sonst bleibt die Zeit auf 1970/20
 alle TOTP-Codes sind falsch (siehe Lessons Learned im Solar-Tracker-Projekt, gleiche Falle).
 
 ## Code-Gerüst
+
+Da es nur ein Panel ist, reicht die einfache `MatrixPanel_I2S_DMA`-Instanz — kein
+`VirtualMatrixPanel`/Chaining nötig.
 
 ```cpp
 #include <WiFi.h>
@@ -88,10 +122,9 @@ alle TOTP-Codes sind falsch (siehe Lessons Learned im Solar-Tracker-Projekt, gle
 
 #define PANEL_RES_X 64
 #define PANEL_RES_Y 32
-#define PANEL_CHAIN 2
+#define PANEL_CHAIN 1
 
 MatrixPanel_I2S_DMA *dma_display = nullptr;
-VirtualMatrixPanel  *virtualDisp = nullptr;
 
 // RFC 4648 Base32-Decoder
 int base32_decode(const char* encoded, uint8_t* out, int outMax) {
@@ -145,20 +178,12 @@ void setup() {
     HUB75_I2S_CFG mxconfig(PANEL_RES_X, PANEL_RES_Y, PANEL_CHAIN, pins);
     dma_display = new MatrixPanel_I2S_DMA(mxconfig);
     dma_display->begin();
-    dma_display->setBrightness8(60);
-
-    // 1 Reihe, 2 Spalten - Panels sitzen Seite an Seite, nicht gestapelt
-    virtualDisp = new VirtualMatrixPanel(*dma_display, 1, 2, PANEL_RES_X, PANEL_RES_Y);
-    virtualDisp->setPhysicalPanelType(CHAIN_TOP_LEFT_RIGHT);
-
-    // Für Hochkant-Montage (physisch 90° gedreht): Rotation in Software nachziehen,
-    // GFX-Zeichenbefehle (Text, Rechtecke) werden dann automatisch umgerechnet.
-    // virtualDisp->setRotation(1);
+    dma_display->setBrightness8(50); // moderat halten, siehe Stromversorgung oben
 }
 
 void loop() {
-    // je Account: base32_decode(secret) -> totp_generate() -> auf virtualDisp zeichnen
-    // Details/vollständiges Beispiel: siehe Chat-Historie dieses Projekts
+    // je Account: base32_decode(secret) -> totp_generate() -> auf dma_display zeichnen
+    // bei mehreren Accounts: alle paar Sekunden durchwechseln (nur 1 Panel = 1 Anzeige gleichzeitig)
 }
 ```
 
@@ -183,7 +208,7 @@ Account accounts[] = {
 
 ## Offene Punkte
 
-- [x] Panels identifiziert + Foto der Verkabelung ergänzt (siehe oben)
+- [x] Panel identifiziert (nur eines, nicht zwei) + Pin-Zuordnung anhand Foto verifiziert
 - [ ] Finale Firmware mit echten Accounts flashen (secrets bleiben lokal, nie im Repo)
-- [ ] Gehäuse/Standfuß für 90°-Hochkant-Montage
-- [ ] Foto des fertig montierten (nicht nur verkabelten) Aufbaus ergänzen
+- [ ] Gehäuse/Standfuß
+- [ ] Foto des fertig verkabelten (ESP32 ↔ Panel) Aufbaus ergänzen

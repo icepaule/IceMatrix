@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 620" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 760" font-family="Segoe UI, Helvetica, Arial, sans-serif">
   <defs>
     <linearGradient id="boardGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#2d5a3d"/>
@@ -8,120 +8,137 @@
       <stop offset="0%" stop-color="#1a1a1a"/>
       <stop offset="100%" stop-color="#0a0a0a"/>
     </linearGradient>
-    <linearGradient id="psuGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#4a4a4a"/>
-      <stop offset="100%" stop-color="#2b2b2b"/>
-    </linearGradient>
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="#333"/>
-    </marker>
   </defs>
 
-  <rect x="0" y="0" width="1040" height="620" fill="#f7f7f5"/>
-  <text x="520" y="32" text-anchor="middle" font-size="21" font-weight="700" fill="#1a1a1a">Matrix5 — Verkabelungsplan (ESP32-S3 + 2x HUB75 P4-2121-64x32, Seite an Seite)</text>
-  <text x="520" y="52" text-anchor="middle" font-size="12" fill="#666">Reale Anordnung laut Foto: beide Panels bilden ein gemeinsames 128x32-Rahmenteil, nicht gestapelt</text>
+  <rect x="0" y="0" width="980" height="760" fill="#f7f7f5"/>
+  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">Matrix5 — Pin-Zuordnung ESP32-S3 ↔ HUB75 DATA_IN (1 Panel, 16-pol.)</text>
+  <text x="490" y="49" text-anchor="middle" font-size="12" fill="#666">Nur DATA_IN (links am Panel) anschließen — DATA_OUT bleibt unbenutzt (nur für ein 2. Panel)</text>
 
-  <!-- ESP32-S3 board -->
+  <!-- ESP32 board -->
+  <rect x="40" y="75" width="200" height="560" rx="12" fill="url(#boardGrad)" stroke="#0d2414" stroke-width="2"/>
+  <text x="140" y="100" text-anchor="middle" font-size="15" font-weight="700" fill="#eafff0">ESP32-S3</text>
+  <text x="140" y="117" text-anchor="middle" font-size="10" fill="#bfe8cc">Pins auf dem Board nur als Zahl bedruckt</text>
+
+  <!-- HUB75 connector -->
+  <rect x="700" y="75" width="200" height="560" rx="12" fill="url(#panelGrad)" stroke="#000" stroke-width="2"/>
+  <text x="800" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">HUB75 DATA_IN</text>
+  <text x="800" y="117" text-anchor="middle" font-size="10" fill="#aaa">16-pol. IDC (Ribbon, Panel links im Foto)</text>
+
+  <!-- rows: pin#, signal, esp_gpio -->
+  <!-- y positions: 16 rows starting 150, step 30 -->
+
+  <g font-size="13">
+    <!-- row template repeated -->
+  </g>
+
+  <!-- Row data as individual groups -->
+  <!-- Row 1: Pin1 R1 -> GPIO4 -->
   <g>
-    <rect x="30" y="90" width="215" height="400" rx="14" fill="url(#boardGrad)" stroke="#0d2414" stroke-width="2"/>
-    <text x="137" y="122" text-anchor="middle" font-size="16" font-weight="700" fill="#eafff0">ESP32-S3</text>
-    <text x="137" y="141" text-anchor="middle" font-size="12" fill="#bfe8cc">DevKitC-1</text>
-    <rect x="48" y="158" width="178" height="55" rx="4" fill="#111" stroke="#444"/>
-    <text x="137" y="188" text-anchor="middle" font-size="10" fill="#8bd6a0">USB-C (nur Strom/Flash,</text>
-    <text x="137" y="201" text-anchor="middle" font-size="10" fill="#8bd6a0">nicht für Panel-Strom!)</text>
-
-    <g font-size="12" fill="#eafff0">
-      <text x="48" y="240">GPIO4  → R1</text>
-      <text x="48" y="258">GPIO5  → G1</text>
-      <text x="48" y="276">GPIO6  → B1</text>
-      <text x="48" y="294">GPIO7  → R2</text>
-      <text x="48" y="312">GPIO15 → G2</text>
-      <text x="48" y="330">GPIO16 → B2</text>
-      <text x="48" y="348">GPIO17 → A</text>
-      <text x="48" y="366">GPIO18 → B</text>
-      <text x="48" y="384">GPIO8  → C</text>
-      <text x="48" y="402">GPIO9  → D</text>
-      <text x="48" y="420">GPIO11 → LAT</text>
-      <text x="48" y="438">GPIO12 → OE</text>
-      <text x="48" y="456">GPIO13 → CLK</text>
-    </g>
-    <text x="137" y="478" text-anchor="middle" font-size="9" fill="#9fd6ac">(GPIO10 = E, unbenutzt bei 1/16-Scan)</text>
+    <text x="230" y="155" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">4</text>
+    <line x1="240" y1="151" x2="700" y2="151" stroke="#e67e22" stroke-width="2"/>
+    <text x="710" y="155" font-size="12" fill="#fff">Pin 1 — R1</text>
   </g>
-
-  <!-- optional level shifter -->
+  <!-- Row 2: Pin2 G1 -> GPIO5 -->
   <g>
-    <rect x="280" y="270" width="120" height="55" rx="6" fill="#e8e8e8" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
-    <text x="340" y="293" text-anchor="middle" font-size="11" fill="#333">74HCT245</text>
-    <text x="340" y="308" text-anchor="middle" font-size="9" fill="#666">Levelshifter (empf.)</text>
+    <text x="230" y="185" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">5</text>
+    <line x1="240" y1="181" x2="700" y2="181" stroke="#27ae60" stroke-width="2"/>
+    <text x="710" y="185" font-size="12" fill="#fff">Pin 2 — G1</text>
   </g>
-
-  <!-- Panel Left -->
+  <!-- Row 3: Pin3 B1 -> GPIO6 -->
   <g>
-    <rect x="440" y="90" width="270" height="270" rx="8" fill="url(#panelGrad)" stroke="#000" stroke-width="2"/>
-    <text x="575" y="122" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Panel links</text>
-    <text x="575" y="140" text-anchor="middle" font-size="11" fill="#aaa">P4-2121-64x32-16S-HL1.0</text>
-    <text x="575" y="157" text-anchor="middle" font-size="11" fill="#aaa">= Account A</text>
-    <rect x="450" y="185" width="34" height="16" fill="#333" stroke="#666"/>
-    <text x="467" y="197" text-anchor="middle" font-size="8" fill="#ccc">DATA_IN</text>
-    <rect x="686" y="185" width="34" height="16" fill="#333" stroke="#666"/>
-    <text x="703" y="197" text-anchor="middle" font-size="8" fill="#ccc">DATA_OUT</text>
-    <circle cx="560" cy="240" r="4" fill="#e74c3c"/><text x="572" y="244" font-size="10" fill="#f5b7b1">VCC</text>
-    <circle cx="600" cy="240" r="4" fill="#555"/><text x="612" y="244" font-size="10" fill="#ccc">GND</text>
-    <text x="575" y="270" text-anchor="middle" font-size="9" fill="#7fbf7f">eigener 4-pol. Stecker (Foto)</text>
-    <text x="575" y="286" text-anchor="middle" font-size="9" fill="#7fbf7f">+ 1000-2200uF Elko</text>
+    <text x="230" y="215" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">6</text>
+    <line x1="240" y1="211" x2="700" y2="211" stroke="#2980b9" stroke-width="2"/>
+    <text x="710" y="215" font-size="12" fill="#fff">Pin 3 — B1</text>
   </g>
-
-  <!-- Panel Right -->
+  <!-- Row 4: Pin4 GND -->
   <g>
-    <rect x="730" y="90" width="270" height="270" rx="8" fill="url(#panelGrad)" stroke="#000" stroke-width="2"/>
-    <text x="865" y="122" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Panel rechts</text>
-    <text x="865" y="140" text-anchor="middle" font-size="11" fill="#aaa">P4-2121-64x32-16S-HL1.0</text>
-    <text x="865" y="157" text-anchor="middle" font-size="11" fill="#aaa">= Account B</text>
-    <rect x="740" y="185" width="34" height="16" fill="#333" stroke="#666"/>
-    <text x="757" y="197" text-anchor="middle" font-size="8" fill="#ccc">DATA_IN</text>
-    <rect x="976" y="185" width="34" height="16" fill="#333" stroke="#666"/>
-    <text x="993" y="197" text-anchor="middle" font-size="8" fill="#ccc">(frei)</text>
-    <circle cx="850" cy="240" r="4" fill="#e74c3c"/><text x="862" y="244" font-size="10" fill="#f5b7b1">VCC</text>
-    <circle cx="890" cy="240" r="4" fill="#555"/><text x="902" y="244" font-size="10" fill="#ccc">GND</text>
-    <text x="865" y="270" text-anchor="middle" font-size="9" fill="#7fbf7f">eigener 4-pol. Stecker (Foto)</text>
-    <text x="865" y="286" text-anchor="middle" font-size="9" fill="#7fbf7f">+ 1000-2200uF Elko</text>
+    <text x="230" y="245" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND</text>
+    <line x1="240" y1="241" x2="700" y2="241" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+    <text x="710" y="245" font-size="12" fill="#fff">Pin 4 — GND</text>
   </g>
-
-  <!-- Data ribbon: ESP32 -> Panel Left IN -->
-  <path d="M245,220 C 340,220 380,193 450,193" fill="none" stroke="#2980b9" stroke-width="3" marker-end="url(#arrow)"/>
-  <text x="330" y="180" font-size="11" fill="#2980b9" font-weight="600">HUB75-Ribbon (14 Signale)</text>
-
-  <!-- Chain: Panel Left OUT -> Panel Right IN (panels adjoin directly) -->
-  <path d="M720,193 L740,193" fill="none" stroke="#2980b9" stroke-width="3" marker-end="url(#arrow)"/>
-  <text x="723" y="215" font-size="9" fill="#2980b9" font-weight="600">Kette (Panels stossen aneinander)</text>
-
-  <!-- PSU -->
+  <!-- Row 5: Pin5 R2 -> GPIO7 -->
   <g>
-    <rect x="30" y="530" width="180" height="70" rx="10" fill="url(#psuGrad)" stroke="#111" stroke-width="2"/>
-    <text x="120" y="558" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">5V Netzteil</text>
-    <text x="120" y="575" text-anchor="middle" font-size="11" fill="#ddd">min. 6-10A, getrennt von USB!</text>
-    <circle cx="55" cy="590" r="4" fill="#e74c3c"/><text x="65" y="594" font-size="10" fill="#f5b7b1">5V</text>
-    <circle cx="100" cy="590" r="4" fill="#555"/><text x="110" y="594" font-size="10" fill="#ccc">GND</text>
+    <text x="230" y="275" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">7</text>
+    <line x1="240" y1="271" x2="700" y2="271" stroke="#e67e22" stroke-width="2"/>
+    <text x="710" y="275" font-size="12" fill="#fff">Pin 5 — R2</text>
+  </g>
+  <!-- Row 6: Pin6 G2 -> GPIO15 -->
+  <g>
+    <text x="230" y="305" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">15</text>
+    <line x1="240" y1="301" x2="700" y2="301" stroke="#27ae60" stroke-width="2"/>
+    <text x="710" y="305" font-size="12" fill="#fff">Pin 6 — G2</text>
+  </g>
+  <!-- Row 7: Pin7 B2 -> GPIO16 -->
+  <g>
+    <text x="230" y="335" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">16</text>
+    <line x1="240" y1="331" x2="700" y2="331" stroke="#2980b9" stroke-width="2"/>
+    <text x="710" y="335" font-size="12" fill="#fff">Pin 7 — B2</text>
+  </g>
+  <!-- Row 8: Pin8 GND -->
+  <g>
+    <text x="230" y="365" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND</text>
+    <line x1="240" y1="361" x2="700" y2="361" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+    <text x="710" y="365" font-size="12" fill="#fff">Pin 8 — GND</text>
+  </g>
+  <!-- Row 9: Pin9 A -> GPIO17 -->
+  <g>
+    <text x="230" y="395" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">17</text>
+    <line x1="240" y1="391" x2="700" y2="391" stroke="#8e44ad" stroke-width="2"/>
+    <text x="710" y="395" font-size="12" fill="#fff">Pin 9 — A</text>
+  </g>
+  <!-- Row 10: Pin10 B -> GPIO18 -->
+  <g>
+    <text x="230" y="425" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">18</text>
+    <line x1="240" y1="421" x2="700" y2="421" stroke="#8e44ad" stroke-width="2"/>
+    <text x="710" y="425" font-size="12" fill="#fff">Pin 10 — B</text>
+  </g>
+  <!-- Row 11: Pin11 C -> GPIO8 -->
+  <g>
+    <text x="230" y="455" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">8</text>
+    <line x1="240" y1="451" x2="700" y2="451" stroke="#8e44ad" stroke-width="2"/>
+    <text x="710" y="455" font-size="12" fill="#fff">Pin 11 — C</text>
+  </g>
+  <!-- Row 12: Pin12 D -> GPIO9 -->
+  <g>
+    <text x="230" y="485" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">9</text>
+    <line x1="240" y1="481" x2="700" y2="481" stroke="#8e44ad" stroke-width="2"/>
+    <text x="710" y="485" font-size="12" fill="#fff">Pin 12 — D</text>
+  </g>
+  <!-- Row 13: Pin13 CLK -> GPIO13 -->
+  <g>
+    <text x="230" y="515" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">13</text>
+    <line x1="240" y1="511" x2="700" y2="511" stroke="#f1c40f" stroke-width="2"/>
+    <text x="710" y="515" font-size="12" fill="#fff">Pin 13 — CLK</text>
+  </g>
+  <!-- Row 14: Pin14 LAT -> GPIO11 -->
+  <g>
+    <text x="230" y="545" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">11</text>
+    <line x1="240" y1="541" x2="700" y2="541" stroke="#f1c40f" stroke-width="2"/>
+    <text x="710" y="545" font-size="12" fill="#fff">Pin 14 — LAT (STB)</text>
+  </g>
+  <!-- Row 15: Pin15 OE -> GPIO12 -->
+  <g>
+    <text x="230" y="575" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">12</text>
+    <line x1="240" y1="571" x2="700" y2="571" stroke="#f1c40f" stroke-width="2"/>
+    <text x="710" y="575" font-size="12" fill="#fff">Pin 15 — OE</text>
+  </g>
+  <!-- Row 16: Pin16 GND -->
+  <g>
+    <text x="230" y="605" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND</text>
+    <line x1="240" y1="601" x2="700" y2="601" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+    <text x="710" y="605" font-size="12" fill="#fff">Pin 16 — GND</text>
   </g>
 
-  <!-- Power: PSU -> Panel Left VCC/GND (routed right of the ESP32 board, clear of the level shifter) -->
-  <path d="M55,530 L55,500 L252,500 L252,244 L556,244" fill="none" stroke="#e74c3c" stroke-width="3"/>
-  <path d="M100,530 L100,506 L260,506 L260,244 L596,244" fill="none" stroke="#e74c3c" stroke-width="3"/>
-  <!-- Power: PSU -> Panel Right VCC/GND (routed below both panels, then up between them) -->
-  <path d="M55,530 L55,512 L733,512 L733,244 L846,244" fill="none" stroke="#e74c3c" stroke-width="3"/>
-  <path d="M100,530 L100,520 L745,520 L745,244 L886,244" fill="none" stroke="#e74c3c" stroke-width="3"/>
+  <text x="140" y="660" text-anchor="middle" font-size="10" fill="#9fd6ac">(GPIO10 = E, bei 1/16-Scan unbenutzt)</text>
+  <text x="800" y="660" text-anchor="middle" font-size="10" fill="#888">GND-Pins (4/8/16) auf gemeinsame Masse</text>
 
-  <!-- GND common ESP32/PSU -->
-  <path d="M120,490 L120,530" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5,4"/>
-
-  <!-- Legend -->
-  <g transform="translate(280,530)">
-    <rect x="0" y="0" width="250" height="55" fill="#fff" stroke="#ccc"/>
-    <line x1="10" y1="16" x2="40" y2="16" stroke="#2980b9" stroke-width="3"/>
-    <text x="46" y="20" font-size="11" fill="#333">HUB75-Datensignale / Kette</text>
-    <line x1="10" y1="34" x2="40" y2="34" stroke="#e74c3c" stroke-width="3"/>
-    <text x="46" y="38" font-size="11" fill="#333">5V-Einspeisung (separat je Panel!)</text>
+  <!-- Not connected notes -->
+  <g transform="translate(40,660)">
+    <rect x="0" y="0" width="900" height="80" rx="8" fill="#fff3cd" stroke="#e0c060"/>
+    <text x="15" y="25" font-size="13" font-weight="700" fill="#7a5c00">Nicht mit dem ESP32 verbinden:</text>
+    <text x="15" y="45" font-size="12" fill="#5c4600">• DATA_OUT (2. 16-pol. Header am Panel, unbestückt) — nur für ein zweites, gekettetes Panel. Bei einem Panel unbenutzt lassen.</text>
+    <text x="15" y="63" font-size="12" fill="#5c4600">• 4-poliger VCC/GND-Steckverbinder am Panel — das ist die 5V-Stromversorgung, geht ans Netzteil (eigenes Adernpaar), nicht an ESP32-Datenpins.</text>
   </g>
 
-  <text x="520" y="612" text-anchor="middle" font-size="10" fill="#666">Für Hochkant-Montage: komplette 128x32-Einheit um 90° drehen, Software per setRotation() anpassen (keine Verkabelungsänderung)</text>
+  <text x="490" y="756" text-anchor="middle" font-size="10" fill="#666">Pin-1-Markierung am eigenen Ribbon-Kabel vor dem Anschließen prüfen (rote Ader / Kerbe am Steckergehäuse) — Zuordnung sonst um 1 verschoben</text>
 </svg>

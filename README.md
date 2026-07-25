@@ -11,7 +11,7 @@ plus ein eigenständiges ESP32-S3-Projekt (Matrix5) mit HUB75-RGB-Panels für TO
 | Matrix2 | 4x MAX7219 (32x8) | Rot | ESP-12F | Uhrzeit + PV-Leistung |
 | Matrix3 | 8x MAX7219 (64x8) | 4x Rot + 4x Blau | Wemos D1 Mini | Uhrzeit + PV + Alerts |
 | Matrix4 (Strompreis) | 4x MAX7219 (32x8) | Rot | Wemos D1 Mini | Tibber Strompreis + Trend |
-| **Matrix5 (2FA-Anzeige)** | 2x HUB75 P4-2121-64x32-16S | RGB | **ESP32-S3** | TOTP/2FA-Codes (eigene Firmware, kein Tasmota) |
+| **Matrix5 (2FA-Anzeige)** | 1x HUB75 P4-2121-64x32-16S | RGB | **ESP32-S3** | TOTP/2FA-Codes (eigene Firmware, kein Tasmota) |
 
 Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Kette, eigene C++/PlatformIO-Firmware statt Tasmota) und deshalb separat dokumentiert:
 → [Matrix5: TOTP/2FA-Anzeige](docs/matrix5-totp.md)
