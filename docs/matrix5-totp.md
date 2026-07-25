@@ -92,7 +92,29 @@ Für die TOTP-Anzeige (dünne Ziffern auf überwiegend schwarzem Hintergrund, ke
 der reale Verbrauch deutlich niedriger, aber sicherheitshalber:
 - Netzteil mit **mindestens 3A, besser 4A** bei 5V wählen (Aufpreis minimal, Sicherheitsmarge groß)
 - Helligkeit in der Software moderat begrenzen (`setBrightness8()`, z.B. 40-60 von 255) statt auf Maximum zu laufen
-- Falls unbedingt bei 2,0A bleiben soll: nur mit niedriger Helligkeit betreiben und im Zweifel mit einem Multimeter den realen Stromverbrauch bei eurem tatsächlichen Anzeigeinhalt messen, bevor ihr euch drauf verlasst
+- Falls unbedingt bei 2A bleiben soll: nur mit niedriger Helligkeit betreiben und im Zweifel mit einem Multimeter den realen Stromverbrauch bei eurem tatsächlichen Anzeigeinhalt messen, bevor ihr euch drauf verlasst
+
+#### Wenn der ESP32 auf einem Perfboard sitzt
+
+Die "zwei Adernpaare ab der Quelle"-Aufteilung von oben lässt sich genauso auf einem Perfboard
+umsetzen, **ohne das USB-Kabel anschneiden zu müssen** — es kommt nur darauf an, *wo* genau
+abgegriffen wird:
+
+- **Nicht** das Panel-Kabel an den 5V-Pin des ESP32-*Moduls* selbst löten — dessen Pad/Leiterbahn
+  ist meist nur für den Eigenbedarf des Chips ausgelegt.
+- **Stattdessen** einen eigenen kleinen 5V/GND-Knotenpunkt auf dem Perfboard anlegen, an dem das
+  Netzteilkabel zuerst ankommt. Von diesem einen Punkt aus zwei getrennte Leitungen abgehen
+  lassen: eine zum 5V-Pin des ESP32 (versorgt nur den Chip, wenig Strom), eine zweite —
+  ausreichend dick dimensioniert — direkt zum 4-poligen VCC/GND-Stecker des Panels. So läuft der
+  Panel-Strom nie durchs ESP32-Modul, sondern beide hängen parallel am selben Speisepunkt.
+- Der ESP32 wird dann über den 5V-Pin extern versorgt statt über USB — USB bleibt nur fürs
+  Flashen angeschlossen (bei den meisten Boards dank Verpolungsschutz-Diode auch gefahrlos
+  parallel möglich, im Zweifel beim Flashen extern kurz trennen).
+- **Leitungsquerschnitt**: für die beiden Stromleitungen (Netzteil→Knotenpunkt, Knotenpunkt→Panel)
+  eher 20-22 AWG statt dünner 24-AWG-Jumperkabel — bei 1-2A macht sich dünner Draht sonst als
+  Spannungsabfall bemerkbar.
+- Bei nur 2A Netzteil-Budget bleibt ohnehin wenig Reserve (der ESP32 zieht bei WLAN-Sendespitzen
+  allein schon 300-500mA) — Helligkeit niedrig ansetzen und einmal nachmessen, siehe oben.
 
 ## Software-Architektur
 
