@@ -5,7 +5,19 @@ damit man beim Login nicht jedes Mal zum Handy greifen muss. Läuft komplett una
 Tasmota/Node-RED/Home Assistant auf einer eigenen ESP32-S3-Firmware.
 
 **Status**: Hardware erkannt und getestet (WLAN/NTP-Smoketest erfolgreich), Firmware für die
-eigentliche TOTP-Anzeige noch nicht final geflasht. Foto folgt, sobald der Aufbau fertig verkabelt ist.
+eigentliche TOTP-Anzeige noch nicht final geflasht.
+
+![Rückseite der beiden Panels, Datenkette und Stromanschluss](images/matrix5-panels-rueckseite.jpg)
+
+Die beiden Panels kommen als **ein zusammenhängendes Rahmenteil, Seite an Seite montiert**
+(nicht übereinander gestapelt, wie ursprünglich angenommen). Auf dem Foto gut zu erkennen:
+- links das Panel mit dem Flachbandkabel (HUB75-Datenkette, kommt vom Controller/`DATA_IN`)
+- rechts das zweite Panel mit dem Aufdruck `P4-2121-64*32-16S-HL1.0` (bestätigt die Modul-Identifikation) und einem separaten 4-poligen VCC/GND-Steckverbinder für die Stromeinspeisung
+- beide Module haben identische Chip-Bestückung, Pfeil-Orientierungsmarkierung und Eck-Bohrungen zur gemeinsamen Rahmenmontage
+
+Für die gewünschte **Hochkant-Aufstellung** wird die komplette 128×32-Einheit als Ganzes um 90°
+gedreht montiert (dann effektiv 32 breit × 128 hoch) — die Software kompensiert das per
+`setRotation()`, keine Änderung an der Verkabelung nötig.
 
 ## Warum kein Tasmota / ESPHome
 
@@ -21,7 +33,7 @@ wie eine eigene Firmware. Deshalb: PlatformIO/Arduino-C++ direkt auf dem ESP32-S
 |------|---------------|
 | Panel (x2) | P4-2121-64x32-16S-HL1.0 — 4mm Pitch, 64x32px, 1/16-Scan, HUB75(E) |
 | Controller | ESP32-S3 (embedded PSRAM), Arduino/PlatformIO |
-| Anzeige | 2 Panels = 2 Accounts gleichzeitig sichtbar (übereinander montiert) |
+| Anzeige | 2 Panels = 2 Accounts gleichzeitig sichtbar (Seite an Seite, als 128x32-Einheit gekettet) |
 
 ## Verkabelungsplan
 
@@ -31,7 +43,8 @@ wie eine eigene Firmware. Deshalb: PlatformIO/Arduino-C++ direkt auf dem ESP32-S
 - **1000-2200µF-Elko** auf der Rückseite jedes Panels zwischen 5V/GND (gegen Spannungseinbrüche).
 - **Pegelwandler (74HCT245) empfohlen**: ESP32-S3 liefert 3,3V-Logik, HUB75-Panels erwarten 5V — bei kurzen Kabeln funktioniert es oft auch ohne, mit Levelshifter ist das Bild stabiler.
 - **Gemeinsame Masse** zwischen Netzteil und ESP32-S3 nicht vergessen.
-- Zwei Panels werden als **eine Kette** betrieben (Panel1 OUT → Panel2 IN), nicht als zwei getrennte Busse — die Software behandelt sie über einen `VirtualMatrixPanel` (Chain-Type vertikal) als eine durchgehende 64x64-Canvas.
+- Zwei Panels werden als **eine Kette** betrieben (Panel links `DATA_IN` vom Controller, Panel links `DATA_OUT` → Panel rechts `DATA_IN`), nicht als zwei getrennte Busse — die Software behandelt sie über einen `VirtualMatrixPanel` (Chain-Type horizontal, links→rechts) als eine durchgehende 128x32-Canvas.
+- Jedes Panel hat einen **eigenen 4-poligen VCC/GND-Steckverbinder** (auf dem Foto rechts sichtbar) — beide trotzdem einzeln vom Netzteil einspeisen, nicht nur eines und den Rest über die Kettenverbindung "durchschleifen".
 
 ### GPIO-Beispielbelegung (ESP32-S3, generisch)
 
@@ -57,8 +70,8 @@ flowchart LR
     Time --> TOTP["TOTP-Berechnung<br/>HMAC-SHA1 (mbedtls) je Account"]
     Secrets["secrets.h<br/>(lokal, nie committen!)"] --> TOTP
     TOTP --> Render["Rendering: Name + 6-stelliger Code<br/>+ Restzeit-Balken"]
-    Render --> P1v["Panel 1 (oben) = Account A"]
-    Render --> P2v["Panel 2 (unten) = Account B"]
+    Render --> P1v["Panel links = Account A"]
+    Render --> P2v["Panel rechts = Account B"]
 ```
 
 Wichtig: VLAN12 (Bad!IoT) blockt externes NTP (UDP/123) nach außen — die interne Gateway-IP
@@ -134,8 +147,13 @@ void setup() {
     dma_display->begin();
     dma_display->setBrightness8(60);
 
-    virtualDisp = new VirtualMatrixPanel(*dma_display, 2, 1, PANEL_RES_X, PANEL_RES_Y);
-    virtualDisp->setPhysicalPanelType(CHAIN_TOP_LEFT_DOWN);
+    // 1 Reihe, 2 Spalten - Panels sitzen Seite an Seite, nicht gestapelt
+    virtualDisp = new VirtualMatrixPanel(*dma_display, 1, 2, PANEL_RES_X, PANEL_RES_Y);
+    virtualDisp->setPhysicalPanelType(CHAIN_TOP_LEFT_RIGHT);
+
+    // Für Hochkant-Montage (physisch 90° gedreht): Rotation in Software nachziehen,
+    // GFX-Zeichenbefehle (Text, Rechtecke) werden dann automatisch umgerechnet.
+    // virtualDisp->setRotation(1);
 }
 
 void loop() {
@@ -165,6 +183,7 @@ Account accounts[] = {
 
 ## Offene Punkte
 
+- [x] Panels identifiziert + Foto der Verkabelung ergänzt (siehe oben)
 - [ ] Finale Firmware mit echten Accounts flashen (secrets bleiben lokal, nie im Repo)
-- [ ] Gehäuse/Standfuß für Hochkant-Aufstellung
-- [ ] Foto des fertigen Aufbaus ergänzen
+- [ ] Gehäuse/Standfuß für 90°-Hochkant-Montage
+- [ ] Foto des fertig montierten (nicht nur verkabelten) Aufbaus ergänzen
