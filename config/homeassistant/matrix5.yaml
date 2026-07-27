@@ -1,0 +1,63 @@
+# =============================================================================
+# Matrix5 - TOTP/2FA-Anzeige (HUB75, Raspberry Pi Zero 2W)
+# =============================================================================
+# 4 Slots = 4 Zellen auf dem Panel (2x2-Raster). Je Slot per Dropdown einen
+# Account waehlen, die Automation schickt die Auswahl per MQTT an den Pi.
+# Steuerung: Einstellungen → Geräte & Dienste → Helfer, oder Dashboard-Karte.
+#
+# HINWEIS: "options" unten sind Platzhalter - mit den tatsaechlichen Account-
+# Namen aus secrets_matrix5.py auf dem Pi befuellen (siehe decode_ga_migration.py).
+# Diese Liste ist reine UI-Beschriftung, keine Secrets, aber trotzdem nicht
+# blind mit echten Kontobezeichnungen aus diesem Repo heraus committen.
+# =============================================================================
+
+input_select:
+  matrix5_slot1:
+    name: "Matrix5: Slot 1"
+    icon: mdi:numeric-1-box-outline
+    options: &matrix5_accounts
+      - "(aus)"
+      - "Beispiel1"
+      - "Beispiel2"
+      - "Beispiel3"
+      - "Beispiel4"
+    initial: "(aus)"
+
+  matrix5_slot2:
+    name: "Matrix5: Slot 2"
+    icon: mdi:numeric-2-box-outline
+    options: *matrix5_accounts
+    initial: "(aus)"
+
+  matrix5_slot3:
+    name: "Matrix5: Slot 3"
+    icon: mdi:numeric-3-box-outline
+    options: *matrix5_accounts
+    initial: "(aus)"
+
+  matrix5_slot4:
+    name: "Matrix5: Slot 4"
+    icon: mdi:numeric-4-box-outline
+    options: *matrix5_accounts
+    initial: "(aus)"
+
+automation:
+  - alias: "Matrix5: Auswahl an Pi senden"
+    id: matrix5_send_selection
+    trigger:
+      - platform: state
+        entity_id:
+          - input_select.matrix5_slot1
+          - input_select.matrix5_slot2
+          - input_select.matrix5_slot3
+          - input_select.matrix5_slot4
+    action:
+      - service: mqtt.publish
+        data:
+          topic: "cmnd/Matrix5/show"
+          payload: >-
+            {{ [states('input_select.matrix5_slot1'),
+                states('input_select.matrix5_slot2'),
+                states('input_select.matrix5_slot3'),
+                states('input_select.matrix5_slot4')]
+               | reject('eq', '(aus)') | list | tojson }}

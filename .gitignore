@@ -1,0 +1,4 @@
+# Matrix5: echte TOTP-Secrets niemals committen, nur die .example-Vorlage
+config/matrix5/secrets_matrix5.py
+secrets_matrix5.py
+secrets.h

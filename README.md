@@ -1,19 +1,19 @@
-# IceMatrix - LED Matrix Displays mit Tasmota, ESP32 & Home Assistant
+# IceMatrix - LED Matrix Displays mit Tasmota, ESP32, Raspberry Pi & Home Assistant
 
 Steuerung mehrerer LED-Matrix-Displays über Tasmota, Node-RED und Home Assistant —
-plus ein eigenständiges ESP32-S3-Projekt (Matrix5) mit HUB75-RGB-Panels für TOTP/2FA-Codes.
+plus ein eigenständiges Raspberry-Pi-Projekt (Matrix5) mit HUB75-RGB-Panel für TOTP/2FA-Codes.
 
 ## Hardware
 
-| Display | Module | Farbe | ESP | Funktion |
+| Display | Module | Farbe | Controller | Funktion |
 |---------|--------|-------|-----|----------|
 | Matrix1 (PV-Matrix) | 4x MAX7219 (32x8) | Rot | ESP-12F | PV-Leistung (Sonnenstand-basiert) |
 | Matrix2 | 4x MAX7219 (32x8) | Rot | ESP-12F | Uhrzeit + PV-Leistung |
 | Matrix3 | 8x MAX7219 (64x8) | 4x Rot + 4x Blau | Wemos D1 Mini | Uhrzeit + PV + Alerts |
 | Matrix4 (Strompreis) | 4x MAX7219 (32x8) | Rot | Wemos D1 Mini | Tibber Strompreis + Trend |
-| **Matrix5 (2FA-Anzeige)** | 1x HUB75 P4-2121-64x32-16S | RGB | **ESP32-S3** | TOTP/2FA-Codes (eigene Firmware, kein Tasmota) |
+| **Matrix5 (2FA-Anzeige)** | 1x HUB75 P4-2121-64x32-16S | RGB | **Raspberry Pi Zero 2W** | TOTP/2FA-Codes, Auswahl per Home Assistant (kein Tasmota) |
 
-Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Kette, eigene C++/PlatformIO-Firmware statt Tasmota) und deshalb separat dokumentiert:
+Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Kette, Python-Service auf einem Pi statt Tasmota) und deshalb separat dokumentiert:
 → [Matrix5: TOTP/2FA-Anzeige](docs/matrix5-totp.md)
 
 ## Verkabelung (Matrix1-4, MAX7219)
@@ -41,7 +41,7 @@ Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Ket
 > **Wichtig**: ESP-12F hat andere GPIO-Zuordnungen als Wemos D1 Mini!
 > `Module` muss auf `0 (Generic)` stehen, da `Module 1 (Sonoff Basic)` GPIO-Overrides ignoriert.
 
-Verkabelung für Matrix5 (HUB75/ESP32-S3): siehe [docs/matrix5-totp.md](docs/matrix5-totp.md) inkl. grafischem Verkabelungsplan.
+Verkabelung für Matrix5 (HUB75/Raspberry Pi Zero 2W): siehe [docs/matrix5-totp.md](docs/matrix5-totp.md) inkl. grafischem Verkabelungsplan.
 
 ## Architektur (Matrix1-4)
 
@@ -119,8 +119,14 @@ IceMatrix/
 │   │   └── platformio_override.ini    # PlatformIO Environment-Config
 │   ├── nodered/
 │   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-4)
-│   └── homeassistant/
-│       └── matrix3_notifications.yaml # HA Package für Alert-Toggles
+│   ├── homeassistant/
+│   │   ├── matrix3_notifications.yaml # HA Package für Alert-Toggles
+│   │   └── matrix5.yaml               # HA Package: 4 Slot-Helfer + Auswahl-Automation (Matrix5)
+│   └── matrix5/
+│       ├── matrix5.py                 # Python-Service (TOTP + MQTT + Rendering)
+│       ├── matrix5.service            # systemd-Unit
+│       ├── decode_ga_migration.py     # Google-Authenticator-Export-Decoder
+│       └── secrets_matrix5.py.example # Vorlage, echte secrets_matrix5.py nie committen
 └── images/                            # (unbenutzt, siehe docs/images/)
 ```
 
@@ -147,3 +153,6 @@ Noch ausstehend — sobald verfügbar, kommen sie hier + in den jeweiligen Docs-
 7. **Module muss 0 (Generic) sein** bei ESP-12F - Module 1 (Sonoff Basic) ignoriert GPIO-Overrides
 8. **Utility-Meter auf Tasmota ENERGY.Today ist unzuverlässig** - Besser direkt Tasmota-Sensoren nutzen (pv_energie_gestern, pv_energie_heute)
 9. **Keine echten Zugangsdaten/internen IPs in öffentlichen Doku-Commits** - auch nicht in früheren Commits, die später "nur" im aktuellen Stand redigiert wurden. Git-History bleibt bei public Repos dauerhaft einsehbar, solange sie nicht aktiv bereinigt wird (`git filter-repo` + Force-Push, ggf. GitHub-Support für Cache-Purge des alten Commits)
+10. **Matrix5-Ursprungsbug war ein vertauschtes LAT/OE-Pin-Paar** im ESP32-`i2s_pins`-Array, gefunden per Vergleichstest mit einem Pi + `rpi-rgb-led-matrix` (anderer Treiber-Stack, gleiche Hardware) - Hardware/Verkabelung waren nie das Problem
+11. **Kein Fehllesen bei sicherheitsrelevanten Codes riskieren** - für die TOTP-Ziffern auf Matrix5 bewusst eine handgezeichnete Pixel-Bitmap statt eines kleinen TrueType-Fonts genutzt, da Anti-Aliasing-Grauwerte bei wenigen Pixeln Höhe ineinander verschwimmen
+12. **Pi Zero 2W + paralleler C++-Compile-Job = Reboot-Risiko** - bei knappem RAM (~415MB) treibt ein Multi-Job-Build das System in Swap-Thrashing, der systemd-Hardware-Watchdog (60s) resettet dann hart; Fix: `CMAKE_BUILD_PARALLEL_LEVEL=1`/`MAKEFLAGS=-j1` beim Bauen, Desktop-GUI für den späteren Headless-Betrieb deaktiviert

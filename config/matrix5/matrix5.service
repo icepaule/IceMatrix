@@ -1,0 +1,16 @@
+[Unit]
+Description=Matrix5 TOTP/2FA-Anzeige (HUB75)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/home/mpauli
+ExecStart=/usr/bin/python3 /home/mpauli/matrix5.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

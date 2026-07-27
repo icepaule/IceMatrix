@@ -1,236 +1,203 @@
-# Matrix5 — TOTP/2FA-Anzeige (HUB75 + ESP32-S3)
+# Matrix5 — TOTP/2FA-Anzeige (HUB75 + Raspberry Pi Zero 2W)
 
 Zeigt die aktuellen TOTP/2FA-Codes (wie Google Authenticator) auf einem RGB-LED-Panel an,
-damit man beim Login nicht jedes Mal zum Handy greifen muss. Läuft komplett unabhängig von
-Tasmota/Node-RED/Home Assistant auf einer eigenen ESP32-S3-Firmware.
+damit man beim Login nicht jedes Mal zum Handy greifen muss. Auswahl der aktuell
+angezeigten Accounts läuft über Home Assistant.
 
-**Status**: Hardware identifiziert, WLAN/NTP-Smoketest erfolgreich. Firmware für die eigentliche
-TOTP-Anzeige noch nicht final geflasht.
+**Status**: Produktiv im Einsatz. Controller ist ein **Raspberry Pi Zero 2W** (nicht mehr
+ESP32-S3, siehe "Warum der Wechsel von ESP32 zu Pi" unten).
 
 ![Rückseite des Panels: DATA_IN-Ribbon links, DATA_OUT-Header + Stromanschluss rechts](images/matrix5-panels-rueckseite.jpg)
 
-**Korrektur (nach genauerem Blick aufs Foto): es ist nur EIN Panel**, keine zwei geketteten
-64x32-Panels. Was wie zwei separate Module aussieht, ist die Treiberelektronik eines einzelnen
-64x32-Panels, auf zwei baugleiche PCB-Hälften verteilt (normal bei dieser Baugröße, jede Hälfte
-hat ihre eigenen Shift-Register-/Treiber-ICs). Erkennbar am gemeinsamen Rahmen mit durchgehenden
-Eckbohrungen und daran, dass der Teile-Aufdruck `P4-2121-64*32-16S-HL1.0` (64x32 Pixel gesamt)
-nur einmal vorkommt.
+**Nur ein Panel**, keine zwei geketteten 64x32-Panels. Was wie zwei separate Module aussieht,
+ist die Treiberelektronik eines einzelnen 64x32-Panels, auf zwei baugleiche PCB-Hälften
+verteilt (normal bei dieser Baugröße). Teile-Aufdruck `P4-2121-64*32-16S-HL1.0` (64x32 Pixel
+gesamt) bestätigt das.
 
 Auf dem Foto:
-- **links**: graues Flachbandkabel, bereits in eine weiße 16-polige IDC-Buchse gesteckt, beschriftet `DATA_IN` — **das ist der Anschluss, der zum ESP32 geht.**
-- **rechts**: ein unbestückter 16-poliger Stiftleisten-Header, beschriftet `DATA_OUT` — für die Verkettung an ein *zweites* Panel, falls später erweitert wird. **Bleibt bei nur einem Panel unbenutzt, nicht anschließen.**
-- **rechts daneben**: 4-poliger VCC/GND-Steckverbinder mit rot/schwarzen Adern — Stromeinspeisung (5V/GND), **geht zum Netzteil, nicht zum ESP32**
+- **links**: graues Flachbandkabel in einer weißen 16-poligen IDC-Buchse, beschriftet `DATA_IN` — **das ist der Anschluss, der zum Pi geht.**
+- **rechts**: ein unbestückter 16-poliger Stiftleisten-Header, beschriftet `DATA_OUT` — für die Verkettung an ein *zweites* Panel, falls später erweitert wird (bereits bestellt). Bleibt bis dahin unbenutzt.
+- **rechts daneben**: 4-poliger VCC/GND-Steckverbinder — Stromeinspeisung (5V/GND), **geht zum Netzteil, nicht zum Pi**.
 
-## Warum kein Tasmota / ESPHome
+## Warum der Wechsel von ESP32 zu Pi
 
-HUB75(E)-RGB-LED-Module brauchen eine kontinuierliche, hochfrequente DMA-Ansteuerung. Tasmota hat
-dafür keinen Treiber (nur MAX7219/OLED/Nextion-artige Displays). ESPHome hat zwar einen
-`hub75`-Component, aber keine TOTP/HMAC-Funktion eingebaut — das müsste per Custom-C++-Component
-nachgerüstet werden, was am Ende genauso viel Aufwand ist wie eine eigene Firmware. Deshalb:
-PlatformIO/Arduino-C++ direkt auf dem ESP32-S3.
+Die ursprüngliche ESP32-S3-Firmware (`ESP32-HUB75-MatrixPanel-I2S-DMA`) hatte einen
+hartnäckigen Bug: `fillScreen()` funktionierte, aber jeder Teilbereichs-Draw
+(`drawPixel`/`fillRect` mit x>0 oder Breite<64) rendert vollflächig mit orange/weißem
+Farbverlauf statt korrektem Bereich/Farbe. Alle naheliegenden Software-Mitigations
+(clkphase, latch_blanking, Treiber-Chip-Variante, Double-Buffering) brachten nichts.
+
+**Diagnose (26.–27.07.2026)**: Ein Raspberry Pi Zero 2W mit der `hzeller/rpi-rgb-led-matrix`-
+Lib (komplett anderer Treiber-Stack) rendert denselben Panel/dieselben Kabel ohne
+Pegelwandler einwandfrei sauber — Hardware/Verkabelung damit ausgeschlossen. Root Cause im
+ESP32-Code gefunden: im `HUB75_I2S_CFG::i2s_pins`-Array waren **LAT und OE vertauscht**
+(`{...,10,12,11,13}` statt `{...,-1,11,12,13}` in der Reihenfolge
+`r1,g1,b1,r2,g2,b2,a,b,c,d,e,lat,oe,clk`) — ein vertauschtes Latch/Blanking-Paar erklärt
+genau das Symptom (Vollbild übersteht falsches Timing meist unauffällig, Teilbereichs-Draws
+nicht). Der Fix wäre trivial gewesen, aber da der Pi bereits nachweislich sauber lief und
+WLAN/MQTT/Python direkt mitbringt (viel einfacher für die Home-Assistant-Anbindung als ein
+zusätzlicher MQTT-Client auf dem ESP32), fiel die Entscheidung, den **Pi dauerhaft als
+Controller zu behalten** statt zur ESP32-Firmware zurückzukehren.
 
 ## Hardware
 
 | Teil | Spezifikation |
 |------|---------------|
-| Panel | P4-2121-64x32-16S-HL1.0 — 4mm Pitch, 64x32px, 1/16-Scan, HUB75(E), 1 Stück |
-| Controller | ESP32-S3 (embedded PSRAM), Arduino/PlatformIO |
-| Anzeige | 1 Panel = 1 Account permanent sichtbar, oder mehrere Accounts im Wechsel (Timer) |
+| Panel | P4-2121-64x32-16S-HL1.0 — 4mm Pitch, 64x32px, 1/16-Scan, HUB75(E), 1 Stück (2. Panel bereits bestellt) |
+| Controller | Raspberry Pi Zero 2W, Raspberry Pi OS (Debian trixie), Python 3.13 |
+| Anzeige | 2×2-Raster, bis zu 4 Accounts gleichzeitig sichtbar |
 
 ## Verkabelungsplan — Pin für Pin
 
-![Matrix5 Pin-Zuordnung ESP32 ↔ HUB75](images/matrix5-wiring.svg)
+![Matrix5 Pin-Zuordnung Pi Zero 2W ↔ HUB75](images/matrix5-wiring.svg)
 
-**Nur die `DATA_IN`-Buchse (16-polig, links auf dem Foto) wird mit dem ESP32 verbunden.** Standard-HUB75-Pinbelegung (16-pol., zickzack-nummeriert — Pin 1 meist durch eine rote Ader oder eine Kerbe/Nase am Steckergehäuse markiert, unbedingt vor dem Anschließen prüfen, sonst ist die ganze Zuordnung um 1 verschoben):
+**Nur die `DATA_IN`-Buchse (16-polig) wird mit dem Pi verbunden.** "regular"-GPIO-Wiring von
+`rpi-rgb-led-matrix` (Standard-Layout ohne HAT):
 
-| Ribbon-Pin | Signal | ESP32-Pin (Zahl auf dem Board) |
-|---|---|---|
-| 1 | R1 | 4 |
-| 2 | G1 | 5 |
-| 3 | B1 | 6 |
-| 4 | GND | GND |
-| 5 | R2 | 7 |
-| 6 | G2 | 15 |
-| 7 | B2 | 16 |
-| 8 | GND | GND |
-| 9 | A | 17 |
-| 10 | B | 18 |
-| 11 | C | 8 |
-| 12 | D | 9 |
-| 13 | CLK | 13 |
-| 14 | LAT (STB) | 11 |
-| 15 | OE | 12 |
-| 16 | GND | GND |
+| Ribbon-Pin | Signal | Pi-Pin (physisch) | BCM |
+|---|---|---|---|
+| 1 | R1 | 23 | GPIO11 |
+| 2 | G1 | 13 | GPIO27 |
+| 3 | B1 | 26 | GPIO7 |
+| 4 | GND | 6 | — |
+| 5 | R2 | 24 | GPIO8 |
+| 6 | G2 | 21 | GPIO9 |
+| 7 | B2 | 19 | GPIO10 |
+| 8 | GND | 9 | — |
+| 9 | A | 15 | GPIO22 |
+| 10 | B | 16 | GPIO23 |
+| 11 | C | 18 | GPIO24 |
+| 12 | D | 22 | GPIO25 |
+| 13 | CLK | 11 | GPIO17 |
+| 14 | LAT (STB) | 7 | GPIO4 |
+| 15 | OE | 12 | GPIO18 |
+| 16 | GND | 14 | — |
 
-Diese Tabelle ist der **Standard-16-pol.-HUB75(E)-Belegung** entnommen (passt zu einem 1/16-Scan-Panel mit A-D-Adresslinien, kein E nötig — Pinzahl 16 statt 20 bestätigt das). Trotzdem: **am eigenen Kabel die Pin-1-Markierung verifizieren**, bevor irgendwas angeschlossen wird — Fotos/Silkscreen-Aufdrucke variieren je Hersteller/Charge.
+E-Leitung (GPIO15/Pin10) nur für 1/32-Scan-Panels nötig — bei diesem 1/16-Scan-Panel unbenutzt.
 
-Weitere Punkte:
-- **`DATA_OUT`-Header (rechts, 16-pol., unbestückt) bleibt unbenutzt** — nur relevant, falls später ein zweites Panel angekettet wird.
-- **4-poliger VCC/GND-Steckverbinder** ist die Stromversorgung — geht ans Netzteil (siehe unten), nicht an den ESP32-Datenbus.
-- **1000-2200µF-Elko** auf der Panel-Rückseite zwischen 5V/GND (gegen Spannungseinbrüche), falls nicht schon werksseitig verbaut.
-- **Pegelwandler (74HCT245) empfohlen**: ESP32-S3 liefert 3,3V-Logik, HUB75-Panels erwarten 5V — bei kurzen Kabeln funktioniert es oft auch ohne, mit Levelshifter ist das Bild stabiler.
-- **Gemeinsame Masse** zwischen Netzteil und ESP32-S3 nicht vergessen (siehe Stromversorgung unten).
+Pin-Referenz für den Zero 2W: [wevolver.com — Raspberry Pi Zero 2 W Pinout Guide](https://www.wevolver.com/article/raspberry-pi-zero-2-w-pinout-comprehensive-guide-for-engineers)
 
-### Stromversorgung — geht das mit nur einem Netzteil?
+Weitere Punkte (unverändert von der ESP32-Planung):
+- **Pegelwandler nicht nötig** — der Pi-Test lief bei kurzen Kabeln ohne Pegelwandler sauber, genau wie später im Dauerbetrieb.
+- **1000-2200µF-Elko** auf der Panel-Rückseite zwischen 5V/GND, falls nicht werksseitig verbaut.
+- **Gemeinsame Masse** zwischen Netzteil und Pi nicht vergessen.
+- **Stromversorgung**: eigenes 5V/GND-Adernpaar direkt vom Netzteil zum Pi, ein zweites direkt zum Panel-Stecker — nicht durch den Pi durchschleifen (siehe Dimensionierung unten).
+- Mindestens 3A, besser 4A bei 5V (P4-64x32-Panel kann bei Vollbild/hoher Helligkeit kurzzeitig 3-4A ziehen); Helligkeit in Software moderat halten (`brightness`-Option, aktuell 60%).
 
-Ja, aber **nicht indem der Panel-Strom durchs ESP32-Board geleitet wird** (also nicht: Netzteil →
-ESP32-USB-Port → 5V-Pin des ESP32 → Panel). Das 5V-Pin eines Dev-Boards ist meist nur für kleine
-Zusatzverbraucher gedacht (dünne Leiterbahn/Pad, teils mit Mini-Sicherung auf der 5V-Schiene) —
-für ein LED-Panel mit ein paar Ampere Spitzenlast nicht ausgelegt, selbst wenn das Netzteil selbst
-das liefern könnte.
+### Bekannte Pi-Zero-2W-Stolperfallen (im Betrieb aufgetreten)
 
-**Stattdessen**: ein einziges 5V-Netzteil nehmen und **direkt an der Quelle auf zwei Adernpaare
-aufteilen** — ein Paar geht auf den 5V/GND-Pin des ESP32 (Board dann *nicht* zusätzlich über USB
-mit Strom versorgen, nur noch fürs Flashen per USB anstecken), das andere Paar direkt auf den
-4-poligen VCC/GND-Stecker des Panels. Beide Adernpaare kommen vom selben Netzteil, aber keines
-läuft durch das ESP32-Board durch — elektrisch sauber, und trotzdem nur ein Stecker in der
-Steckdose.
-
-**Zur Dimensionierung**: ein reines P4-64x32-Panel kann bei voller Helligkeit/komplett weißem
-Bild kurzzeitig 3-4A ziehen — ein 2,0A-USB-Netzteil reicht dafür im Extremfall nicht.
-Für die TOTP-Anzeige (dünne Ziffern auf überwiegend schwarzem Hintergrund, kein Vollbild) liegt
-der reale Verbrauch deutlich niedriger, aber sicherheitshalber:
-- Netzteil mit **mindestens 3A, besser 4A** bei 5V wählen (Aufpreis minimal, Sicherheitsmarge groß)
-- Helligkeit in der Software moderat begrenzen (`setBrightness8()`, z.B. 40-60 von 255) statt auf Maximum zu laufen
-- Falls unbedingt bei 2A bleiben soll: nur mit niedriger Helligkeit betreiben und im Zweifel mit einem Multimeter den realen Stromverbrauch bei eurem tatsächlichen Anzeigeinhalt messen, bevor ihr euch drauf verlasst
-
-#### Wenn der ESP32 auf einem Perfboard sitzt
-
-Die "zwei Adernpaare ab der Quelle"-Aufteilung von oben lässt sich genauso auf einem Perfboard
-umsetzen, **ohne das USB-Kabel anschneiden zu müssen** — es kommt nur darauf an, *wo* genau
-abgegriffen wird:
-
-- **Nicht** das Panel-Kabel an den 5V-Pin des ESP32-*Moduls* selbst löten — dessen Pad/Leiterbahn
-  ist meist nur für den Eigenbedarf des Chips ausgelegt.
-- **Stattdessen** einen eigenen kleinen 5V/GND-Knotenpunkt auf dem Perfboard anlegen, an dem das
-  Netzteilkabel zuerst ankommt. Von diesem einen Punkt aus zwei getrennte Leitungen abgehen
-  lassen: eine zum 5V-Pin des ESP32 (versorgt nur den Chip, wenig Strom), eine zweite —
-  ausreichend dick dimensioniert — direkt zum 4-poligen VCC/GND-Stecker des Panels. So läuft der
-  Panel-Strom nie durchs ESP32-Modul, sondern beide hängen parallel am selben Speisepunkt.
-- Der ESP32 wird dann über den 5V-Pin extern versorgt statt über USB — USB bleibt nur fürs
-  Flashen angeschlossen (bei den meisten Boards dank Verpolungsschutz-Diode auch gefahrlos
-  parallel möglich, im Zweifel beim Flashen extern kurz trennen).
-- **Leitungsquerschnitt**: für die beiden Stromleitungen (Netzteil→Knotenpunkt, Knotenpunkt→Panel)
-  eher 20-22 AWG statt dünner 24-AWG-Jumperkabel — bei 1-2A macht sich dünner Draht sonst als
-  Spannungsabfall bemerkbar.
-- Bei nur 2A Netzteil-Budget bleibt ohnehin wenig Reserve (der ESP32 zieht bei WLAN-Sendespitzen
-  allein schon 300-500mA) — Helligkeit niedrig ansetzen und einmal nachmessen, siehe oben.
+- **`snd_bcm2835`-Sound-Kernelmodul kollidiert mit Hardware-Pulse-Modus** der Matrix-Lib
+  (`--led-no-hardware-pulse` bzw. Python-Option `disable_hardware_pulsing = True` nötig,
+  etwas mehr Flicker als Kompromiss).
+- **WLAN-Power-Save verursacht Verbindungsabbrüche** (ständiges Neu-Assoziieren am AP) —
+  `nmcli con modify <profil> 802-11-wireless.powersave 2` (disable) behoben.
+- **Reboot-Loop beim Kompilieren der Python-Bindings**: Pi Zero 2W hat nur ~415MB nutzbares
+  RAM; ein paralleler C++-Build (mehrere gcc-Jobs) treibt das System bei knappem Speicher in
+  Swap-Thrashing, wodurch der systemd-Hardware-Watchdog (60s-Timeout) das Keepalive verpasst
+  und hart resettet. Fix: `CMAKE_BUILD_PARALLEL_LEVEL=1 MAKEFLAGS=-j1 pip install .`, zusätzlich
+  auf Konsolen-Boot (`systemctl set-default multi-user.target`) statt Desktop-GUI umgestellt,
+  da ein dauerhaftes Headless-Display ohnehin keine GUI braucht.
 
 ## Software-Architektur
 
 ```mermaid
 flowchart LR
-    NTP["NTP-Sync<br/>(WLAN, beim Boot + stündlich)"] --> Time["Systemzeit (esp_timer)"]
-    Time --> TOTP["TOTP-Berechnung<br/>HMAC-SHA1 (mbedtls) je Account"]
-    Secrets["secrets.h<br/>(lokal, nie committen!)"] --> TOTP
-    TOTP --> Render["Rendering: Name + 6-stelliger Code<br/>+ Restzeit-Balken"]
-    Render --> P1["1 Panel (64x32)<br/>1 Account, oder mehrere im Wechsel"]
+    subgraph HA["Home Assistant"]
+        S1["input_select<br/>Matrix5: Slot 1-4"]
+        AUTO["Automation:<br/>Auswahl an Pi senden"]
+    end
+    S1 --> AUTO
+    AUTO -->|"MQTT publish<br/>cmnd/Matrix5/show<br/>(JSON-Liste)"| MQTT[("Mosquitto")]
+    MQTT --> SVC["matrix5.py (systemd)<br/>auf Pi Zero 2W"]
+    SECRETS["secrets_matrix5.py<br/>(lokal, nie committen!)"] --> SVC
+    SVC -->|"TOTP-Berechnung<br/>(pyotp, HMAC-SHA1)"| RENDER["Rendering:<br/>Name (Font) + Code<br/>(handgezeichnete Pixel-Bitmap)"]
+    RENDER -->|"rgbmatrix-Bindings"| PANEL["HUB75-Panel<br/>2x2-Raster, 4 Accounts"]
+    MQTT -.->|"stat/Matrix5/shown<br/>(retained)"| HA
 ```
 
-Wichtig: VLAN12 (Bad!IoT) blockt externes NTP (UDP/123) nach außen — die interne Gateway-IP
-muss in der NTP-Serverliste **zuerst** stehen, sonst bleibt die Zeit auf 1970/2000 stehen und
-alle TOTP-Codes sind falsch (siehe Lessons Learned im Solar-Tracker-Projekt, gleiche Falle).
+Kein Tasmota/ESPHome nötig (unverändert von der ESP32-Überlegung): HUB75(E)-RGB-LED-Module
+brauchen eine kontinuierliche, hochfrequente DMA-Ansteuerung — die `rpi-rgb-led-matrix`-Lib
+übernimmt das auf dem Pi über PWM/DMA trotz Linux' nicht-echtzeitfähigem Scheduler.
 
-## Code-Gerüst
+## Rendering-Details
 
-Da es nur ein Panel ist, reicht die einfache `MatrixPanel_I2S_DMA`-Instanz — kein
-`VirtualMatrixPanel`/Chaining nötig.
+Bei 64x32px physischer Auflösung ist "wie viele Accounts passen gleichzeitig drauf, noch
+lesbar" ein harter Kompromiss — mehrere Iterationen mit direktem Blick aufs Panel haben zu
+folgendem Design geführt:
 
-```cpp
-#include <WiFi.h>
-#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
-#include <mbedtls/md.h>
-#include "secrets.h"
+- **Ziffern (TOTP-Code)**: handgezeichnete 4×5-Pixel-Bitmap pro Ziffer (0-9), kein
+  Font/Antialiasing. Ein normaler TrueType-Font in dieser Größe verschwimmt auf dem groben
+  LED-Raster (Graustufen-Kanten blenden benachbarte Pixel ineinander) — ein Fehllesen eines
+  TOTP-Codes ist aber kein akzeptables Risiko, deshalb feste, eindeutige Pixelformen statt
+  Font-Rendering. 1px Lücke zwischen Ziffern.
+- **Name**: normaler TrueType-Font (DejaVuSansMono-Bold), Größe 10, mit Antialiasing. Ein
+  Schwellwert-Trick (Graustufen hart auf An/Aus reduzieren) wurde probiert, hat bei so
+  kleiner Schrift aber Buchstaben-Striche zerrissen statt sie zu schärfen — bei arbiträrem
+  Text (anders als bei nur 10 Ziffernformen) gibt es keine einfache Pixel-Bitmap, deshalb
+  normales Antialiasing plus ausreichend große Schrift.
+- **Ergebnis**: 2×2-Raster (4 Accounts gleichzeitig), kein Rotieren durch mehr Accounts
+  (war testweise eingebaut, aber unpraktisch — man muss auf den gewünschten Code warten).
+  Zellgröße eng an die gemessenen Font-/Bitmap-Maße angepasst (keine verschenkten Leerzeilen).
+- **Farbe**: Code grün solange TOTP-Restzeit > 5s, sonst rot (Ablauf-Warnung). Gilt pro
+  Zeile identisch, da Standard-30s-TOTP-Accounts synchron ablaufen.
+- Mehr Accounts gleichzeitig sichtbar → zweites (bereits bestelltes) Panel anketten, siehe
+  `CHAIN_LENGTH`-Konstante im Code.
 
-#define PANEL_RES_X 64
-#define PANEL_RES_Y 32
-#define PANEL_CHAIN 1
+## MQTT
 
-MatrixPanel_I2S_DMA *dma_display = nullptr;
+| Topic | Richtung | Payload |
+|---|---|---|
+| `cmnd/Matrix5/show` | HA → Pi | JSON-Liste der anzuzeigenden Account-Namen, max. 4 (Rest wird geloggt, aber nicht angezeigt) |
+| `stat/Matrix5/shown` | Pi → HA | retained, Bestätigung der aktuell angezeigten Auswahl |
 
-// RFC 4648 Base32-Decoder
-int base32_decode(const char* encoded, uint8_t* out, int outMax) {
-    static const char* ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-    int buffer = 0, bitsLeft = 0, count = 0;
-    for (const char* p = encoded; *p; p++) {
-        char c = toupper(*p);
-        const char* pos = strchr(ALPHABET, c);
-        if (!pos) continue;
-        buffer = (buffer << 5) | (pos - ALPHABET);
-        bitsLeft += 5;
-        if (bitsLeft >= 8) {
-            if (count < outMax) out[count++] = (buffer >> (bitsLeft - 8)) & 0xFF;
-            bitsLeft -= 8;
-        }
-    }
-    return count;
-}
+Broker: Mosquitto @NUC-HA (intern), gleiche Zugangsdaten wie die übrigen Tasmota/ESP-Geräte
+im Haus.
 
-// RFC 6238 TOTP
-uint32_t totp_generate(const uint8_t* key, size_t keyLen, time_t t, int digits = 6) {
-    uint64_t counter = t / 30;
-    uint8_t msg[8];
-    for (int i = 7; i >= 0; i--) { msg[i] = counter & 0xFF; counter >>= 8; }
+## Home Assistant
 
-    uint8_t hmac[20];
-    mbedtls_md_context_t ctx;
-    mbedtls_md_init(&ctx);
-    mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), 1);
-    mbedtls_md_hmac_starts(&ctx, key, keyLen);
-    mbedtls_md_hmac_update(&ctx, msg, 8);
-    mbedtls_md_hmac_finish(&ctx, hmac);
-    mbedtls_md_free(&ctx);
+4 `input_select`-Helfer (`Matrix5: Slot 1-4`), je ein Dropdown mit allen konfigurierten
+Accounts + "(aus)" — ein Slot entspricht direkt einer der 4 Panel-Zellen. Eine Automation
+publiziert bei jeder Änderung die aktuelle Auswahl aller 4 Slots als JSON-Liste auf
+`cmnd/Matrix5/show`.
 
-    int offset = hmac[19] & 0x0F;
-    uint32_t bin = ((hmac[offset] & 0x7F) << 24) | (hmac[offset+1] << 16) |
-                   (hmac[offset+2] << 8) | hmac[offset+3];
-    uint32_t mod = 1; for (int i = 0; i < digits; i++) mod *= 10;
-    return bin % mod;
-}
+## Account-Provisionierung (Secrets)
 
-void setup() {
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-    while (WiFi.status() != WL_CONNECTED) delay(200);
+Google Authenticator hat **keine öffentliche API** zum Auslesen der TOTP-Secrets (bewusst so,
+sonst wäre 2FA wertlos). Weg über die App:
 
-    // Internes Gateway zuerst, sonst blockiert das IoT-VLAN externes NTP
-    configTime(0, 0, "<Gateway-IP>", "pool.ntp.org");
-    while (time(nullptr) < 1700000000) delay(200);
+1. Google Authenticator → Menü → **Konten übertragen** → **Konten exportieren** → Accounts
+   wählen. Bei vielen Accounts erzeugt die App **mehrere QR-Codes nacheinander**
+   ("QR-Code X von Y").
+2. Jeden QR-Code scannen/als Bild sichern.
+3. `decode_ga_migration.py` (liegt auf dem Pi) dekodiert den `otpauth-migration://...`-Link
+   **direkt auf dem Pi** und schreibt nur in `secrets_matrix5.py` — gibt dabei nur
+   Account-**Namen** aus, nie die Secrets selbst. Bewusst ohne externe protobuf-Abhängigkeit:
+   das Migrations-Format wird von Hand als rohes Protobuf-Wire-Format geparst (fester,
+   einfacher Schema-Aufbau).
+4. QR-Bilder danach löschen (`shred`) — sie enthalten die Secrets im Klartext.
 
-    HUB75_I2S_CFG::i2s_pins pins = {4,5,6,7,15,16,17,18,8,9,10,11,12,13};
-    HUB75_I2S_CFG mxconfig(PANEL_RES_X, PANEL_RES_Y, PANEL_CHAIN, pins);
-    dma_display = new MatrixPanel_I2S_DMA(mxconfig);
-    dma_display->begin();
-    dma_display->setBrightness8(50); // moderat halten, siehe Stromversorgung oben
-}
-
-void loop() {
-    // je Account: base32_decode(secret) -> totp_generate() -> auf dma_display zeichnen
-    // bei mehreren Accounts: alle paar Sekunden durchwechseln (nur 1 Panel = 1 Anzeige gleichzeitig)
-}
-```
-
-`secrets.h` (Beispiel, **niemals mit echten Secrets committen**):
-
-```cpp
-#pragma once
-struct Account { const char* name; const char* base32secret; uint16_t color; };
-
-// JBSWY3DPEHPK3PXP ist der öffentliche RFC-6238-Testvektor, kein echtes Secret
-Account accounts[] = {
-    { "Beispiel", "JBSWY3DPEHPK3PXP", 0xF800 },
-};
-```
+**Wichtig**: Der Export-QR-Link ist genauso sensibel wie die Secrets selbst — nie
+unverschlüsselt verschicken/ablegen, wo Dritte drankommen. Falls per Mail o.ä. verschickt,
+Kopien (auch in Mail-Archiven!) hinterher aktiv löschen.
 
 ## Sicherheitshinweise
 
-- **Physische Sichtbarkeit**: Wer neben dem Monitor auf das Display schauen kann, sieht die aktuellen 2FA-Codes — bewusster Kompromiss, Gerät entsprechend platzieren.
-- **`secrets.h` niemals committen** — lokal per `.gitignore` ausschließen, auch nicht in abgewandelter Form (siehe Lessons Learned unten zur Git-History).
-- **Keine echten TOTP-Secrets in Screenshots/Doku** — auch nicht in diesem Repo, auch nicht in Kommentaren oder Issues.
-- Google-Authenticator-"Konten übertragen"-Export bündelt alle Secrets in einem QR — falls zur Migration genutzt, diesen QR nirgendwo teilen (entspricht vollem 2FA-Bypass für alle enthaltenen Accounts).
+- **Physische Sichtbarkeit**: Wer neben dem Panel auf das Display schauen kann, sieht die
+  aktuellen 2FA-Codes der 4 ausgewählten Accounts — bewusster Kompromiss, Gerät entsprechend
+  platzieren.
+- **`secrets_matrix5.py` niemals committen** — lokal per `.gitignore` ausgeschlossen, liegt
+  nur auf dem Pi.
+- **Keine echten TOTP-Secrets in Screenshots/Doku** — auch nicht in diesem Repo.
+- Google-Authenticator-"Konten übertragen"-Export bündelt (ggf. über mehrere QR-Codes) alle
+  gewählten Secrets im Klartext — niemand sonst darf diesen QR/Link zu Gesicht bekommen.
 
 ## Offene Punkte
 
-- [x] Panel identifiziert (nur eines, nicht zwei) + Pin-Zuordnung anhand Foto verifiziert
-- [ ] Finale Firmware mit echten Accounts flashen (secrets bleiben lokal, nie im Repo)
-- [ ] Gehäuse/Standfuß
-- [ ] Foto des fertig verkabelten (ESP32 ↔ Panel) Aufbaus ergänzen
+- [x] Panel identifiziert (nur eines, nicht zwei) + Pin-Zuordnung verifiziert
+- [x] ESP32-Bug gefunden (LAT/OE vertauscht) — Entscheidung: Pi bleibt dauerhaft Controller
+- [x] Pi-Provisionierung, systemd-Service, HA-Integration (4 Slots + Automation) produktiv
+- [ ] Vollständige Account-Bezeichnungen ("Dienst: Konto" statt teils generischem
+      Dienstnamen mit Nummern-Suffix bei Kollisionen) — braucht erneuten Export-Durchlauf mit
+      angepasstem Decoder (Issuer+Name statt nur Issuer)
+- [ ] Zweites Panel anketten (bereits bestellt) für mehr gleichzeitig sichtbare Accounts
+- [ ] Foto des fertig verkabelten (Pi ↔ Panel) Aufbaus ergänzen

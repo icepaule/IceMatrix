@@ -11,112 +11,104 @@
   </defs>
 
   <rect x="0" y="0" width="980" height="760" fill="#f7f7f5"/>
-  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">Matrix5 — Pin-Zuordnung ESP32-S3 ↔ HUB75 DATA_IN (1 Panel, 16-pol.)</text>
-  <text x="490" y="49" text-anchor="middle" font-size="12" fill="#666">Nur DATA_IN (links am Panel) anschließen — DATA_OUT bleibt unbenutzt (nur für ein 2. Panel)</text>
+  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">Matrix5 — Pin-Zuordnung Raspberry Pi Zero 2W ↔ HUB75 DATA_IN (1 Panel, 16-pol.)</text>
+  <text x="490" y="49" text-anchor="middle" font-size="12" fill="#666">"regular" GPIO-Wiring von rpi-rgb-led-matrix — Zahl = physischer Pi-Pin (nicht GPIO-Nummer)</text>
 
-  <!-- ESP32 board -->
+  <!-- Pi board -->
   <rect x="40" y="75" width="200" height="560" rx="12" fill="url(#boardGrad)" stroke="#0d2414" stroke-width="2"/>
-  <text x="140" y="100" text-anchor="middle" font-size="15" font-weight="700" fill="#eafff0">ESP32-S3</text>
-  <text x="140" y="117" text-anchor="middle" font-size="10" fill="#bfe8cc">Pins auf dem Board nur als Zahl bedruckt</text>
+  <text x="140" y="100" text-anchor="middle" font-size="15" font-weight="700" fill="#eafff0">Raspberry Pi Zero 2W</text>
+  <text x="140" y="117" text-anchor="middle" font-size="10" fill="#bfe8cc">40-Pin-Header, physische Pin-Nummer zaehlen</text>
 
   <!-- HUB75 connector -->
   <rect x="700" y="75" width="200" height="560" rx="12" fill="url(#panelGrad)" stroke="#000" stroke-width="2"/>
   <text x="800" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">HUB75 DATA_IN</text>
   <text x="800" y="117" text-anchor="middle" font-size="10" fill="#aaa">16-pol. IDC (Ribbon, Panel links im Foto)</text>
 
-  <!-- rows: pin#, signal, esp_gpio -->
-  <!-- y positions: 16 rows starting 150, step 30 -->
-
-  <g font-size="13">
-    <!-- row template repeated -->
-  </g>
-
-  <!-- Row data as individual groups -->
-  <!-- Row 1: Pin1 R1 -> GPIO4 -->
+  <!-- Row 1: Pin1 R1 -> Pi Pin23 (GPIO11) -->
   <g>
-    <text x="230" y="155" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">4</text>
+    <text x="230" y="155" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">23</text>
     <line x1="240" y1="151" x2="700" y2="151" stroke="#e67e22" stroke-width="2"/>
     <text x="710" y="155" font-size="12" fill="#fff">Pin 1 — R1</text>
   </g>
-  <!-- Row 2: Pin2 G1 -> GPIO5 -->
+  <!-- Row 2: Pin2 G1 -> Pi Pin13 (GPIO27) -->
   <g>
-    <text x="230" y="185" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">5</text>
+    <text x="230" y="185" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">13</text>
     <line x1="240" y1="181" x2="700" y2="181" stroke="#27ae60" stroke-width="2"/>
     <text x="710" y="185" font-size="12" fill="#fff">Pin 2 — G1</text>
   </g>
-  <!-- Row 3: Pin3 B1 -> GPIO6 -->
+  <!-- Row 3: Pin3 B1 -> Pi Pin26 (GPIO7) -->
   <g>
-    <text x="230" y="215" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">6</text>
+    <text x="230" y="215" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">26</text>
     <line x1="240" y1="211" x2="700" y2="211" stroke="#2980b9" stroke-width="2"/>
     <text x="710" y="215" font-size="12" fill="#fff">Pin 3 — B1</text>
   </g>
   <!-- Row 4: Pin4 GND -->
   <g>
-    <text x="230" y="245" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND</text>
+    <text x="230" y="245" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND (6)</text>
     <line x1="240" y1="241" x2="700" y2="241" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
     <text x="710" y="245" font-size="12" fill="#fff">Pin 4 — GND</text>
   </g>
-  <!-- Row 5: Pin5 R2 -> GPIO7 -->
+  <!-- Row 5: Pin5 R2 -> Pi Pin24 (GPIO8) -->
   <g>
-    <text x="230" y="275" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">7</text>
+    <text x="230" y="275" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">24</text>
     <line x1="240" y1="271" x2="700" y2="271" stroke="#e67e22" stroke-width="2"/>
     <text x="710" y="275" font-size="12" fill="#fff">Pin 5 — R2</text>
   </g>
-  <!-- Row 6: Pin6 G2 -> GPIO15 -->
+  <!-- Row 6: Pin6 G2 -> Pi Pin21 (GPIO9) -->
   <g>
-    <text x="230" y="305" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">15</text>
+    <text x="230" y="305" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">21</text>
     <line x1="240" y1="301" x2="700" y2="301" stroke="#27ae60" stroke-width="2"/>
     <text x="710" y="305" font-size="12" fill="#fff">Pin 6 — G2</text>
   </g>
-  <!-- Row 7: Pin7 B2 -> GPIO16 -->
+  <!-- Row 7: Pin7 B2 -> Pi Pin19 (GPIO10) -->
   <g>
-    <text x="230" y="335" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">16</text>
+    <text x="230" y="335" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">19</text>
     <line x1="240" y1="331" x2="700" y2="331" stroke="#2980b9" stroke-width="2"/>
     <text x="710" y="335" font-size="12" fill="#fff">Pin 7 — B2</text>
   </g>
   <!-- Row 8: Pin8 GND -->
   <g>
-    <text x="230" y="365" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND</text>
+    <text x="230" y="365" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND (9)</text>
     <line x1="240" y1="361" x2="700" y2="361" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
     <text x="710" y="365" font-size="12" fill="#fff">Pin 8 — GND</text>
   </g>
-  <!-- Row 9: Pin9 A -> GPIO17 -->
+  <!-- Row 9: Pin9 A -> Pi Pin15 (GPIO22) -->
   <g>
-    <text x="230" y="395" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">17</text>
+    <text x="230" y="395" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">15</text>
     <line x1="240" y1="391" x2="700" y2="391" stroke="#8e44ad" stroke-width="2"/>
     <text x="710" y="395" font-size="12" fill="#fff">Pin 9 — A</text>
   </g>
-  <!-- Row 10: Pin10 B -> GPIO18 -->
+  <!-- Row 10: Pin10 B -> Pi Pin16 (GPIO23) -->
   <g>
-    <text x="230" y="425" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">18</text>
+    <text x="230" y="425" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">16</text>
     <line x1="240" y1="421" x2="700" y2="421" stroke="#8e44ad" stroke-width="2"/>
     <text x="710" y="425" font-size="12" fill="#fff">Pin 10 — B</text>
   </g>
-  <!-- Row 11: Pin11 C -> GPIO8 -->
+  <!-- Row 11: Pin11 C -> Pi Pin18 (GPIO24) -->
   <g>
-    <text x="230" y="455" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">8</text>
+    <text x="230" y="455" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">18</text>
     <line x1="240" y1="451" x2="700" y2="451" stroke="#8e44ad" stroke-width="2"/>
     <text x="710" y="455" font-size="12" fill="#fff">Pin 11 — C</text>
   </g>
-  <!-- Row 12: Pin12 D -> GPIO9 -->
+  <!-- Row 12: Pin12 D -> Pi Pin22 (GPIO25) -->
   <g>
-    <text x="230" y="485" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">9</text>
+    <text x="230" y="485" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">22</text>
     <line x1="240" y1="481" x2="700" y2="481" stroke="#8e44ad" stroke-width="2"/>
     <text x="710" y="485" font-size="12" fill="#fff">Pin 12 — D</text>
   </g>
-  <!-- Row 13: Pin13 CLK -> GPIO13 -->
+  <!-- Row 13: Pin13 CLK -> Pi Pin11 (GPIO17) -->
   <g>
-    <text x="230" y="515" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">13</text>
+    <text x="230" y="515" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">11</text>
     <line x1="240" y1="511" x2="700" y2="511" stroke="#f1c40f" stroke-width="2"/>
     <text x="710" y="515" font-size="12" fill="#fff">Pin 13 — CLK</text>
   </g>
-  <!-- Row 14: Pin14 LAT -> GPIO11 -->
+  <!-- Row 14: Pin14 LAT -> Pi Pin7 (GPIO4) -->
   <g>
-    <text x="230" y="545" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">11</text>
+    <text x="230" y="545" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">7</text>
     <line x1="240" y1="541" x2="700" y2="541" stroke="#f1c40f" stroke-width="2"/>
     <text x="710" y="545" font-size="12" fill="#fff">Pin 14 — LAT (STB)</text>
   </g>
-  <!-- Row 15: Pin15 OE -> GPIO12 -->
+  <!-- Row 15: Pin15 OE -> Pi Pin12 (GPIO18) -->
   <g>
     <text x="230" y="575" text-anchor="end" font-size="13" font-weight="600" fill="#eafff0">12</text>
     <line x1="240" y1="571" x2="700" y2="571" stroke="#f1c40f" stroke-width="2"/>
@@ -124,20 +116,20 @@
   </g>
   <!-- Row 16: Pin16 GND -->
   <g>
-    <text x="230" y="605" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND</text>
+    <text x="230" y="605" text-anchor="end" font-size="12" font-weight="600" fill="#ccc">GND (14)</text>
     <line x1="240" y1="601" x2="700" y2="601" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
     <text x="710" y="605" font-size="12" fill="#fff">Pin 16 — GND</text>
   </g>
 
-  <text x="140" y="660" text-anchor="middle" font-size="10" fill="#9fd6ac">(GPIO10 = E, bei 1/16-Scan unbenutzt)</text>
+  <text x="140" y="660" text-anchor="middle" font-size="10" fill="#9fd6ac">(Pin 10 = GPIO15 = E, nur fuer 1/32-Scan-Panels; hier 1/16-Scan, unbenutzt)</text>
   <text x="800" y="660" text-anchor="middle" font-size="10" fill="#888">GND-Pins (4/8/16) auf gemeinsame Masse</text>
 
   <!-- Not connected notes -->
   <g transform="translate(40,660)">
     <rect x="0" y="0" width="900" height="80" rx="8" fill="#fff3cd" stroke="#e0c060"/>
-    <text x="15" y="25" font-size="13" font-weight="700" fill="#7a5c00">Nicht mit dem ESP32 verbinden:</text>
+    <text x="15" y="25" font-size="13" font-weight="700" fill="#7a5c00">Nicht mit dem Pi verbinden:</text>
     <text x="15" y="45" font-size="12" fill="#5c4600">• DATA_OUT (2. 16-pol. Header am Panel, unbestückt) — nur für ein zweites, gekettetes Panel. Bei einem Panel unbenutzt lassen.</text>
-    <text x="15" y="63" font-size="12" fill="#5c4600">• 4-poliger VCC/GND-Steckverbinder am Panel — das ist die 5V-Stromversorgung, geht ans Netzteil (eigenes Adernpaar), nicht an ESP32-Datenpins.</text>
+    <text x="15" y="63" font-size="12" fill="#5c4600">• 4-poliger VCC/GND-Steckverbinder am Panel — das ist die 5V-Stromversorgung, geht ans Netzteil (eigenes Adernpaar), nicht an Pi-GPIO-Pins.</text>
   </g>
 
   <text x="490" y="756" text-anchor="middle" font-size="10" fill="#666">Pin-1-Markierung am eigenen Ribbon-Kabel vor dem Anschließen prüfen (rote Ader / Kerbe am Steckergehäuse) — Zuordnung sonst um 1 verschoben</text>
