@@ -97,6 +97,17 @@ Weitere Punkte (unverändert von der ESP32-Planung):
   und hart resettet. Fix: `CMAKE_BUILD_PARALLEL_LEVEL=1 MAKEFLAGS=-j1 pip install .`, zusätzlich
   auf Konsolen-Boot (`systemctl set-default multi-user.target`) statt Desktop-GUI umgestellt,
   da ein dauerhaftes Headless-Display ohnehin keine GUI braucht.
+- **Stiller Hänger (kein Reboot!) bei geteilter Stromversorgung mit dem Panel**: Pi über die
+  5V-Schiene eines 2A-Step-downs betrieben, der sich das Panel teilte. Trotz rechnerisch
+  ausreichender 2A kam es zu einem kompletten, stillen Aussetzer (kein WLAN, kein Ping, kein
+  Watchdog-Reset) — vermutlich ein kurzer Spannungseinbruch unter die Pi-Mindestspannung durch
+  die PWM-Multiplex-Stromspitzen des Panels, der das WLAN-Modul/den SoC hängen liess, ohne einen
+  sauberen Undervoltage-Reset auszulösen. `vcgencmd get_throttled` zeigte nach dem manuellen
+  Neustart `0x0` (Historie durch den Neustart geloescht, daher keine nachtraegliche Bestaetigung
+  moeglich). Fix/Empfehlung: Pi über eine eigene, dedizierte 5V-Quelle versorgen (separates
+  Netzteil/Powerbank, min. 2,5A), Panel bleibt an seinem eigenen (stärker dimensionierten)
+  Step-down — nur GND gemeinsam. Falls eine gemeinsame Quelle bleibt: deutlich überdimensionieren
+  (5V/4A+) und einen Pufferkondensator (~1000-2200µF) direkt an den Pi-5V-Pins ergänzen.
 
 ## Software-Architektur
 
@@ -201,3 +212,5 @@ Kopien (auch in Mail-Archiven!) hinterher aktiv löschen.
       angepasstem Decoder (Issuer+Name statt nur Issuer)
 - [ ] Zweites Panel anketten (bereits bestellt) für mehr gleichzeitig sichtbare Accounts
 - [ ] Foto des fertig verkabelten (Pi ↔ Panel) Aufbaus ergänzen
+- [ ] Pi auf eigene, dedizierte 5V-Stromversorgung umstellen (aktuell geteilter 2A-Step-down
+      mit dem Panel führte am 28.07. zu einem stillen Aussetzer des Pi ohne Watchdog-Reset)
