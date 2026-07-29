@@ -213,8 +213,17 @@ flowchart LR
 ```
 
 - **Preis**: aktueller Tibber-Preis in ct/kWh
-- **Trend-Pfeil**: `^` (steigend) / `v` (fallend) / `-` (stabil), aus `price_trend_1h`
+- **Trend-Pfeil**: `^` (steigend) / `v` (fallend) / `-` (stabil), aus `sensor.paule_price_trend_1h`
 - **Best/Peak-Marker**: markiert günstigstes bzw. teuerstes Preisfenster des Tages
+
+> **Bug gefunden 29.07.2026**: `sensor.paule_price_trend_1h` ist ein Enum-Sensor
+> (`strongly_falling`…`strongly_rising`), kein numerischer Wert — der Node-RED-Flow rechnete
+> vorher mit `parseFloat(payload)` darauf, was immer `NaN`/0 ergab. Der Pfeil zeigte dadurch
+> unabhängig vom echten Trend praktisch immer `-` (stabil). Fix: Enum-Werte auf `-2…2` gemappt,
+> damit die bestehende Schwellenwert-Logik (`>0.1`/`<-0.1`) greift. Separat/unabhängig davon war
+> `sensor.paule_price_trend_1h` zum Zeitpunkt des Fixes seit dem 27.07.2026 durchgehend
+> `unavailable` (Integrations-seitiges Problem, nicht in Node-RED behebbar) — der Pfeil bleibt bis
+> zur Wiederherstellung der Entity auf `-`.
 
 ### Helligkeit
 
