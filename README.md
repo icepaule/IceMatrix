@@ -1,7 +1,12 @@
 # IceMatrix - LED Matrix Displays mit Tasmota, ESP32, Raspberry Pi & Home Assistant
 
 Steuerung mehrerer LED-Matrix-Displays über Tasmota, Node-RED und Home Assistant —
-plus ein eigenständiges Raspberry-Pi-Projekt (Matrix5) mit HUB75-RGB-Panel für TOTP/2FA-Codes.
+plus ein eigenständiges Raspberry-Pi-Projekt (Matrix5) mit HUB75-RGB-Panel.
+
+> **Nicht verwechseln**: Matrix5 zeigt **Stromkosten/Waschzeitpunkt** (Tibber). Die
+> ursprünglich hier gebaute TOTP/2FA-Anzeige ist komplett auf ein separates Projekt,
+> [Kiosk2FA](https://github.com/icepaule/Ice-2FA-Kiosk), umgezogen (eigener Pi + Monitor,
+> zeigt alle Accounts gleichzeitig statt nur 4 Slots wie früher auf Matrix5).
 
 ## Hardware
 
@@ -11,10 +16,10 @@ plus ein eigenständiges Raspberry-Pi-Projekt (Matrix5) mit HUB75-RGB-Panel für
 | Matrix2 | 4x MAX7219 (32x8) | Rot | ESP-12F | Uhrzeit + PV-Leistung |
 | Matrix3 | 8x MAX7219 (64x8) | 4x Rot + 4x Blau | Wemos D1 Mini | Uhrzeit + PV + Alerts |
 | Matrix4 (Strompreis) | 4x MAX7219 (32x8) | Rot | Wemos D1 Mini | Tibber Strompreis + Trend |
-| **Matrix5 (2FA-Anzeige)** | 1x HUB75 P4-2121-64x32-16S | RGB | **Raspberry Pi Zero 2W** | TOTP/2FA-Codes, Auswahl per Home Assistant (kein Tasmota) |
+| **Matrix5 (Strompreis/Waschzeitpunkt)** | 1x HUB75 P4-2121-64x32-16S | RGB | **Raspberry Pi Zero 2W** | Aktueller Preis + günstigste Zeit (Tibber, Node-RED statt Tasmota) |
 
 Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Kette, Python-Service auf einem Pi statt Tasmota) und deshalb separat dokumentiert:
-→ [Matrix5: TOTP/2FA-Anzeige](docs/matrix5-totp.md)
+→ [Matrix5: Stromkosten-/Waschzeitpunkt-Anzeige](docs/matrix5-strompreis.md)
 
 ## Verkabelung (Matrix1-4, MAX7219)
 
@@ -41,7 +46,7 @@ Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Ket
 > **Wichtig**: ESP-12F hat andere GPIO-Zuordnungen als Wemos D1 Mini!
 > `Module` muss auf `0 (Generic)` stehen, da `Module 1 (Sonoff Basic)` GPIO-Overrides ignoriert.
 
-Verkabelung für Matrix5 (HUB75/Raspberry Pi Zero 2W): siehe [docs/matrix5-totp.md](docs/matrix5-totp.md) inkl. grafischem Verkabelungsplan.
+Verkabelung für Matrix5 (HUB75/Raspberry Pi Zero 2W): siehe [docs/matrix5-strompreis.md](docs/matrix5-strompreis.md) inkl. grafischem Verkabelungsplan.
 
 ## Architektur (Matrix1-4)
 
@@ -79,6 +84,7 @@ Jedes Display hat einen eigenen Node-RED Flow:
 - **Matrix2**: Uhrzeit (Standard) / PV-Leistung (10s alle 60s)
 - **Matrix3**: Links Uhr/PV (5 Zeichen) | Rechts Alerts (4 Zeichen, rotierend)
 - **Matrix4**: Tibber Strompreis + Trend-Pfeil + Min/Max
+- **Matrix5**: Tibber Strompreis + günstigste Zeit (5 Watcher-Nodes → Function → MQTT an den Pi, siehe [docs/matrix5-strompreis.md](docs/matrix5-strompreis.md))
 
 → [Node-RED Konfiguration](docs/nodered-config.md)
 
@@ -109,7 +115,8 @@ IceMatrix/
 ├── docs/
 │   ├── custom-build.md                # Schritt-für-Schritt Build-Anleitung (Matrix1-4)
 │   ├── nodered-config.md              # Node-RED Flow Dokumentation (Matrix1-4)
-│   ├── matrix5-totp.md                # Matrix5: HUB75/ESP32-S3 TOTP-Projekt
+│   ├── matrix5-strompreis.md          # Matrix5: HUB75/Pi Zero 2W Strompreis-Projekt
+│   ├── kiosk2fa-epaper.md             # Kiosk2FA: TOTP/2FA-Nachfolgeprojekt (eigener Pi + Monitor)
 │   └── images/                        # Fotos + Verkabelungsplan
 ├── firmware/
 │   └── tasmota-display.bin            # Fertige Custom-Firmware (v14.4.1, Matrix1-4)
@@ -118,15 +125,18 @@ IceMatrix/
 │   │   ├── user_config_override.h     # PlatformIO Build-Override
 │   │   └── platformio_override.ini    # PlatformIO Environment-Config
 │   ├── nodered/
-│   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-4)
+│   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-5)
 │   ├── homeassistant/
 │   │   ├── matrix3_notifications.yaml # HA Package für Alert-Toggles
-│   │   └── matrix5.yaml               # HA Package: 4 Slot-Helfer + Auswahl-Automation (Matrix5)
-│   └── matrix5/
-│       ├── matrix5.py                 # Python-Service (TOTP + MQTT + Rendering)
-│       ├── matrix5.service            # systemd-Unit
-│       ├── decode_ga_migration.py     # Google-Authenticator-Export-Decoder
-│       └── secrets_matrix5.py.example # Vorlage, echte secrets_matrix5.py nie committen
+│   │   └── matrix5.yaml               # VERALTET: HA Package der alten TOTP-Auswahl (4 Slots),
+│   │                                  # seit der Umwidmung auf Strompreis nicht mehr genutzt
+│   ├── matrix5/
+│   │   ├── matrix5.py                 # Python-Service (Strompreis-Anzeige + MQTT + Rendering)
+│   │   ├── matrix5.service            # systemd-Unit
+│   │   ├── decode_ga_migration.py     # VERALTET: Google-Authenticator-Decoder aus der TOTP-Aera
+│   │   └── secrets_matrix5.py.example # VERALTET: Vorlage aus der TOTP-Aera, nicht mehr benoetigt
+│   └── kiosk2fa/                      # Kiosk2FA-Code (eigenes Geraet, siehe docs/kiosk2fa-epaper.md;
+│                                      # oeffentliche Kurz-Doku separat: github.com/icepaule/Ice-2FA-Kiosk)
 └── images/                            # (unbenutzt, siehe docs/images/)
 ```
 
@@ -140,7 +150,7 @@ Noch ausstehend — sobald verfügbar, kommen sie hier + in den jeweiligen Docs-
 | Matrix2 | `docs/images/matrix2.jpg` |
 | Matrix3 | `docs/images/matrix3.jpg` |
 | Matrix4 | `docs/images/matrix4.jpg` |
-| Matrix5 | `docs/images/matrix5.jpg` |
+| Matrix5 | ✅ `docs/images/matrix5-strompreis-panel.jpeg` (siehe [docs/matrix5-strompreis.md](docs/matrix5-strompreis.md)) |
 
 ## Lessons Learned
 
