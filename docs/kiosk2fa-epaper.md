@@ -64,8 +64,15 @@ zweite QR-Provisionierung nötig ist — die Datei wird einfach vom Matrix5-Pi h
   `--disable-features=Translate` **nicht** unterdrücken (neuere Chromium-Version ignoriert
   das teilweise) — erst die Enterprise-Policy `/etc/chromium/policies/managed/kiosk2fa.json`
   (`{"TranslateEnabled": false}`) hat zuverlässig gewirkt.
-- **Mauszeiger** wird zusätzlich per `cursor: none` in der Seiten-CSS ausgeblendet (kein
-  Zeigegerät am Kiosk vorhanden).
+- **Mauszeiger sichtbar, obwohl kein Zeigegerät angeschlossen ist (offen)**: `cursor: none`
+  in der Seiten-CSS bewirkt nichts, weil der Zeiger nicht von Chromium/der Seite gerendert
+  wird, sondern von **cage/wlroots selbst als Compositor-Cursor** — die HDMI-CEC-
+  Fernbedienungs-Eingabe des Pi (`vc4-hdmi`) meldet Zeigefähigkeiten (`REL`-Capability) und
+  lässt wlroots deshalb einen Seat-Cursor zeichnen. Versuch, das per udev-Regel
+  (`LIBINPUT_IGNORE_DEVICE=1` für `vc4-hdmi`) zu unterbinden, hat **cage zuverlässig zum
+  Hängenbleiben gebracht** (reagierte nicht mehr auf SIGTERM, Chromium startete gar nicht
+  mehr, auch nach sauberem Neustart) — Regel wieder entfernt. Cursor bleibt bis auf Weiteres
+  ein kosmetischer Makel statt eines Blockers.
 
 ## e-Paper-Betriebsdaten
 
@@ -133,3 +140,7 @@ in 4er-Slots.
       erreichbar ist (aktuell separates Problem, nicht Teil dieses Setups)
 - [ ] Mini-HDMI-auf-DVI-Kabel für den eigentlich vorgesehenen Monitor steht noch aus
       (Test lief über einen anderen, direkt per HDMI angeschlossenen Monitor)
+- [ ] Mauszeiger dauerhaft ausblenden, ohne cage zum Haengen zu bringen (siehe
+      "Kiosk-Anzeige (HDMI)" oben) - naechster Ansatz waere eher ein Kernel-seitiges
+      Deaktivieren der HDMI-CEC-Eingabe (`hdmi_ignore_cec`/`hdmi_ignore_cec_init` in
+      config.txt) statt einer live per udev nachgezogenen libinput-Regel
