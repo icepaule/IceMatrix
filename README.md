@@ -142,15 +142,15 @@ IceMatrix/
 
 ## Fotos
 
-Noch ausstehend — sobald verfügbar, kommen sie hier + in den jeweiligen Docs-Abschnitt rein:
+Alle Displays im Betrieb fotografiert, eingebunden direkt in den jeweiligen Doku-Abschnitt:
 
-| Display | Datei (geplant) |
-|---------|------------------|
-| Matrix1 | `docs/images/matrix1.jpg` |
-| Matrix2 | `docs/images/matrix2.jpg` |
-| Matrix3 | `docs/images/matrix3.jpg` |
-| Matrix4 | `docs/images/matrix4.jpg` |
-| Matrix5 | ✅ `docs/images/matrix5-strompreis-panel.jpeg` (siehe [docs/matrix5-strompreis.md](docs/matrix5-strompreis.md)) |
+| Display | Datei | Doku-Abschnitt |
+|---------|-------|-----------------|
+| Matrix1 | ✅ `docs/images/matrix1-panel.jpeg` | [docs/nodered-config.md](docs/nodered-config.md#flow-matrix1-pv-matrix-sonnenstand-basiert) |
+| Matrix2 | ✅ `docs/images/matrix2-panel.jpeg` | [docs/nodered-config.md](docs/nodered-config.md#flow-matrix2-uhr--pv) |
+| Matrix3 | ✅ `docs/images/matrix3-panel.jpeg` | [docs/nodered-config.md](docs/nodered-config.md#flow-matrix3-uhrpvalerts) |
+| Matrix4 | ✅ `docs/images/matrix4-panel.jpeg` | [docs/nodered-config.md](docs/nodered-config.md#flow-matrix4-strompreis) |
+| Matrix5 | ✅ `docs/images/matrix5-strompreis-panel.jpeg` | [docs/matrix5-strompreis.md](docs/matrix5-strompreis.md) |
 
 ## Lessons Learned
 

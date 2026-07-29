@@ -38,6 +38,8 @@ flowchart TB
 
 ## Flow: Matrix1 (PV-Matrix, Sonnenstand-basiert)
 
+![Matrix1 im Betrieb (rotes MAX7219-Panel, Fensterrahmen-Montage)](images/matrix1-panel.jpeg)
+
 **Tab**: `Matrix1 (PV-Matrix)`
 **Display**: 4 Module (32x8), Rot, ESP-12F
 
@@ -106,6 +108,8 @@ if (mwh >= 100)  → "100M"    // gerundet
 
 ## Flow: Matrix2 (Uhr + PV)
 
+![Matrix2 im Betrieb (Uhrzeit-Anzeige, rotes MAX7219-Panel)](images/matrix2-panel.jpeg)
+
 **Tab**: `Matrix2 (Uhr + PV)`
 **Display**: 4 Module (32x8), Rot
 
@@ -126,6 +130,8 @@ flowchart LR
 ---
 
 ## Flow: Matrix3 (Uhr+PV+Alerts)
+
+![Matrix3 im Betrieb: links Uhrzeit (blau) "16:53", rechts Alert-Code (rot/gelb) "WSCH"](images/matrix3-panel.jpeg)
 
 **Tab**: `Matrix3 (Uhr+PV+Alerts)`
 **Display**: 8 Module (64x8), 4x Rot + 4x Blau
@@ -195,6 +201,8 @@ Alle 60 Sekunden für 15 Sekunden wird die linke Hälfte auf PV-Daten umgeschalt
 ---
 
 ## Flow: Matrix4 (Strompreis)
+
+![Matrix4 im Betrieb: Preis mit Trend-Pfeil (rotes MAX7219-Panel)](images/matrix4-panel.jpeg)
 
 **Tab**: `Matrix4 (Strompreis)`
 **Display**: 4 Module (32x8), Rot, Wemos D1 Mini
