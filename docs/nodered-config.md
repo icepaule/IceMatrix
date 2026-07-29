@@ -222,6 +222,50 @@ Gleiches Tag/Nacht-Dimmer-Schema wie Matrix2/3: 22:00 Uhr abdimmen, 07:00 Uhr wi
 
 ---
 
+## Zuverlässigkeit: Retain + Self-Heal für State-Commands
+
+**Vorfall (29.07.2026):** Matrix1 blieb eine ganze Nacht durchgehend an, obwohl die Phasen-Logik
+um 22:00 Uhr zuverlässig `phase = 'off'` berechnet. Ursache: das `Power OFF`-Kommando wurde nur
+**edge-triggered** beim Phasenübergang gesendet — einmalig, unretained, QoS 0. Geht genau diese
+eine MQTT-Nachricht verloren (WiFi-Hänger des ESP8266, kurzer Broker-/Client-Reconnect), lernt das
+Display bis zum nächsten Phasenwechsel (Sunrise-30min) nie, dass es aus sein sollte.
+
+Das gleiche Muster (Kommando nur bei Übergang/Cron-Tick gesendet, `retain=false`) fand sich danach
+auch bei der Matrix2/3/4-Dimmerstufe (Cron-Injects 07/20/22 Uhr) und — am gravierendsten, weil dort
+**gar kein periodischer Tick** existierte — bei der Tibber-Strompreis-Ampel (LED-Farbe wechselt nur
+bei Preis-/Perioden-Änderung, potenziell stundenlang falsch bei einer verlorenen Nachricht).
+
+### Fix-Pattern
+
+```mermaid
+flowchart LR
+    A["Phasen-/Zustandswechsel<br/>(Edge-Trigger)"] --> C["MQTT publish<br/>retain=true"]
+    B["Periodischer Tick<br/>(1s / 5min, je nach Flow)"] -->|"Soll-Zustand ≠ zuletzt gesendet<br/>ODER Timeout erreicht"| C
+    C --> D["Tasmota-Gerät"]
+    D -->|"Reconnect/Resubscribe"| E["Retained Message wird sofort erneut zugestellt"]
+```
+
+1. **`retain=true`** auf allen State-Commands (Power, Dimmer) — nicht auf reinen Text-Updates, die
+   ohnehin sekündlich neu gesendet werden, und nicht auf zustandslosen `TOGGLE`-Befehlen (dashboard-manuelle
+   Ein/Aus-Schalter), wo ein Retain bei jedem Geräte-Reconnect einen ungewollten erneuten Toggle auslösen würde.
+2. **Periodisches Self-Heal** zusätzlich zum Edge-Trigger: der gewünschte Zustand wird alle 5 Minuten
+   erneut publiziert, falls er sich seit dem letzten Publish nicht geändert hat. Bei Flows ohne
+   eigenen Tick (Tibber-Ampel) wurde dafür ein zusätzlicher `inject`-Node ergänzt.
+
+Betroffen und gefixt: Matrix1 (`cmnd/Matrix1/Power`), Matrix2/3/4 (`cmnd/Matrix{2,3,4}/DisplayDimmer`),
+Tibber-Ampel + Ampel 2 (`cmnd/tibber-ampel{,-2}/POWER1-3`). LED-Matrix2 (ESPHome) hatte `retain=true`
+bereits von Anfang an korrekt gesetzt.
+
+### Vortag-Wert: nicht `pv_energy_daily.last_period` verwenden
+
+Siehe auch Lesson #8 im [README](../README.md): Matrix2 und Matrix3 lasen den "Vortag"-Wert lange
+Zeit aus dem `last_period`-Attribut des Utility-Meters `sensor.pv_energy_daily` statt direkt aus
+`sensor.pv_energie_gestern` (Tasmota-eigener Sensor). Beide Werte liegen meist nah beieinander, aber
+der Utility-Meter-Pfad ist die dokumentiert unzuverlässige Quelle — inzwischen auf allen drei
+Matrix-Flows (1/2/3) einheitlich auf `sensor.pv_energie_gestern` umgestellt.
+
+---
+
 ## Tasmota DisplayText Befehle
 
 ### Basis-Befehle
