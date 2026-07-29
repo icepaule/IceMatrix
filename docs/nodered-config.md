@@ -264,6 +264,25 @@ Zeit aus dem `last_period`-Attribut des Utility-Meters `sensor.pv_energy_daily` 
 der Utility-Meter-Pfad ist die dokumentiert unzuverlässige Quelle — inzwischen auf allen drei
 Matrix-Flows (1/2/3) einheitlich auf `sensor.pv_energie_gestern` umgestellt.
 
+### Tote Entity-IDs im Matrix3-Alert-Sammler
+
+Nachdem die 14 Alert-Toggles wieder aktiviert wurden (s.o.), fielen in `m3_collect_alerts` drei
+falsch referenzierte Entities auf, die den jeweiligen Alert dauerhaft unbrauchbar machten — trotz
+scheinbar funktionierendem Code (kein Fehler im Log, da HA bei unbekannter Entity einfach `''`
+zurückgibt):
+
+| Alert | Referenzierte (falsche) Entity | Echte Entity | Effekt des Bugs |
+|-------|--------------------------------|--------------|------------------|
+| HCHW (Hochwasser) | `sensor.pegel_isar_muenchen` | `sensor.pegel_isar_munchen` | Alert konnte nie auslösen, auch nicht bei echtem Hochwasser |
+| KATZ (Petkit) | Vergleich `pkError !== 'no_error'` | Sensor liefert Klartext `"No error"` | **Immer** als Fehler gewertet → Dauerhaft aktiver False-Positive-Alert |
+| TEUR/BIL! (Tibber) | `sensor.tibber_price_level` (existiert nicht) | `sensor.tibber_preis_status` (günstig/normal/teuer, gleiche Entity wie die Tibber-Ampel) | Alert konnte nie auslösen |
+
+Der KATZ-Bug ist vermutlich der eigentliche Grund, warum irgendwann alle 14 Toggles auf
+`initial: false` gesetzt wurden (naheliegender Workaround gegen einen Dauer-Alarm, der sich nicht
+abstellen ließ, statt die Ursache zu fixen). Lesson: `getState()`/`isEnabled()`-Helper in Node-RED
+geben bei falscher Entity-ID stillschweigend `''`/`false` zurück — kein Laufzeitfehler, der Bug fällt
+nur beim manuellen Cross-Check jeder Entity gegen `/api/states` auf.
+
 ---
 
 ## Tasmota DisplayText Befehle
