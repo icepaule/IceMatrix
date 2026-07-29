@@ -15,6 +15,8 @@ Tasmota-Ampel, aber mit konkreten Zahlen statt nur Rot/Gelb/Grün.
 
 ## Anzeige
 
+![Matrix5-Panel: Zeile 1 "16:36 28.9" (normal, gelb), Zeile 2 "11:00^17.4" (günstig morgen, grün)](images/matrix5-strompreis-panel.jpeg)
+
 Zwei Zeilen, Uhrzeit jeweils weiß, nur der Preisteil farbcodiert:
 - **Zeile 1**: aktuelle Uhrzeit + aktueller Preis (ct/kWh)
 - **Zeile 2**: nächste günstigere Zeit + der dann gültige Preis — oder `JETZT`, falls der
