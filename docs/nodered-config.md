@@ -186,7 +186,7 @@ flowchart TD
 | `input_boolean.matrix3_tibber_teuer` | Tibber teuer |
 | `input_boolean.matrix3_tibber_guenstig` | Tibber günstig |
 
-Alle 14 Toggles defaulten auf `initial: false` (siehe [config/homeassistant/matrix3_notifications.yaml](../config/homeassistant/matrix3_notifications.yaml)) — jeder Alert muss aktiv eingeschaltet werden, keiner ist standardmäßig aktiv.
+Alle 14 Toggles defaulten auf `initial: true` (siehe [config/homeassistant/matrix3_notifications.yaml](../config/homeassistant/matrix3_notifications.yaml)) — alle Alert-Kategorien sind standardmäßig aktiv, einzelne lassen sich bei Bedarf über das Dashboard deaktivieren. (Zwischenzeitlich stand hier `initial: false`/alle deaktiviert; das führte am 29.07.2026 dazu, dass Matrix3 trotz laufender Node-RED-Logik keine Alerts mehr anzeigte — auf Wunsch wieder auf "alle aktiv" zurückgestellt.)
 
 ### PV-Flash-Fenster
 
