@@ -1,5 +1,5 @@
 [Unit]
-Description=Matrix5 TOTP/2FA-Anzeige (HUB75)
+Description=Matrix5 Stromkosten-/Waschzeitpunkt-Anzeige (HUB75)
 After=network-online.target
 Wants=network-online.target
 
