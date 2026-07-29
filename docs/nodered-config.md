@@ -216,14 +216,30 @@ flowchart LR
 - **Trend-Pfeil**: `^` (steigend) / `v` (fallend) / `-` (stabil), aus `sensor.paule_price_trend_1h`
 - **Best/Peak-Marker**: markiert günstigstes bzw. teuerstes Preisfenster des Tages
 
-> **Bug gefunden 29.07.2026**: `sensor.paule_price_trend_1h` ist ein Enum-Sensor
-> (`strongly_falling`…`strongly_rising`), kein numerischer Wert — der Node-RED-Flow rechnete
-> vorher mit `parseFloat(payload)` darauf, was immer `NaN`/0 ergab. Der Pfeil zeigte dadurch
-> unabhängig vom echten Trend praktisch immer `-` (stabil). Fix: Enum-Werte auf `-2…2` gemappt,
-> damit die bestehende Schwellenwert-Logik (`>0.1`/`<-0.1`) greift. Separat/unabhängig davon war
-> `sensor.paule_price_trend_1h` zum Zeitpunkt des Fixes seit dem 27.07.2026 durchgehend
-> `unavailable` (Integrations-seitiges Problem, nicht in Node-RED behebbar) — der Pfeil bleibt bis
-> zur Wiederherstellung der Entity auf `-`.
+> **Bug-Kette gefunden und vollständig behoben (29.07.2026), drei Ebenen tief:**
+>
+> 1. **Node-RED rechnete falsch**: der Flow wandte `parseFloat(payload)` auf einen Enum-Sensor
+>    (`strongly_falling`…`strongly_rising`) an → immer `NaN`/0 → Pfeil zeigte unabhängig vom
+>    echten Trend praktisch immer `-`. Fix: Enum-Werte auf `-2…2` gemappt.
+> 2. **Die referenzierte Entity war tot**: `sensor.paule_price_trend_1h` ist ein verwaistes
+>    Sensor-Objekt aus einer älteren Version der `tibber_prices`-Integration (0 Referenzen mehr
+>    im aktuellen Integrations-Code) — bleibt nur noch als `restored: true`-Karteileiche in der
+>    Entity-Registry. Fix: Node-RED auf `sensor.paule_current_price_trend` umgestellt (gleiches
+>    5-Werte-Enum, aktiv befüllt).
+> 3. **Die Integration selbst lieferte gar keine Preisdaten mehr**: `tibber_prices` fragt(e)
+>    `resolution:QUARTER_HOURLY` ab — Tibber hat diese Auflösung am 17.05.2026 komplett aus dem
+>    GraphQL-Schema entfernt (nur noch `HOURLY`/`DAILY`). Ein früherer Custom-Patch
+>    (`QUARTER_HOURLY`→`HOURLY` in `api/client.py` + pyTibber `gql_queries.py`, plus
+>    <1h-Fallback-Intervall-Matching in 3 Lookup-Funktionen, da gerundete Zeitstempel nicht mehr
+>    exakt auf stündliche Grenzen treffen) wurde durch ein HACS-Update der Integration
+>    stillschweigend überschrieben — seither lieferte die komplette Preis-Pipeline keine frischen
+>    Daten mehr (nicht nur der Trend). Patch erneut angewendet, `__pycache__` geleert, HA neu
+>    gestartet — Preisdaten fließen wieder.
+>
+> **Offenes Risiko**: HACS aktualisiert `tibber_prices` automatisch und überschreibt diesen Patch
+> vermutlich wieder beim nächsten Release. Empfehlung: Auto-Update für diese Integration in HACS
+> deaktivieren, oder den Patch als eigenen HACS-Fork/Branch pflegen, bis der Upstream-Issue
+> (jpawlowski/hass.tibber_prices#141) gelöst ist.
 
 ### Helligkeit
 
