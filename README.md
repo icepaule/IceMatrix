@@ -116,7 +116,6 @@ IceMatrix/
 │   ├── custom-build.md                # Schritt-für-Schritt Build-Anleitung (Matrix1-4)
 │   ├── nodered-config.md              # Node-RED Flow Dokumentation (Matrix1-4)
 │   ├── matrix5-strompreis.md          # Matrix5: HUB75/Pi Zero 2W Strompreis-Projekt
-│   ├── kiosk2fa-epaper.md             # Kiosk2FA: TOTP/2FA-Nachfolgeprojekt (eigener Pi + Monitor)
 │   └── images/                        # Fotos + Verkabelungsplan
 ├── firmware/
 │   └── tasmota-display.bin            # Fertige Custom-Firmware (v14.4.1, Matrix1-4)
@@ -135,8 +134,7 @@ IceMatrix/
 │   │   ├── matrix5.service            # systemd-Unit
 │   │   ├── decode_ga_migration.py     # VERALTET: Google-Authenticator-Decoder aus der TOTP-Aera
 │   │   └── secrets_matrix5.py.example # VERALTET: Vorlage aus der TOTP-Aera, nicht mehr benoetigt
-│   └── kiosk2fa/                      # Kiosk2FA-Code (eigenes Geraet, siehe docs/kiosk2fa-epaper.md;
-│                                      # oeffentliche Kurz-Doku separat: github.com/icepaule/Ice-2FA-Kiosk)
+│   └── (Kiosk2FA-Code liegt im eigenen Repo: github.com/icepaule/Ice-2FA-Kiosk)
 └── images/                            # (unbenutzt, siehe docs/images/)
 ```
 
