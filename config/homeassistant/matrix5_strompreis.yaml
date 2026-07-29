@@ -1,0 +1,47 @@
+# Matrix5-Panel: Stromkosten-/Waschzeitpunkt-Anzeige (Waschkeller)
+# Ersetzt die bisherige TOTP-Anzeige - die ist komplett auf Kiosk2FA umgezogen
+# (siehe IceMatrix/docs/kiosk2fa-epaper.md).
+# Publiziert aktuellen Preis + naechstes guenstigeres Zeitfenster per MQTT.
+- id: matrix5_strompreis_publish
+  alias: "Matrix5: Strompreis an Panel senden"
+  description: "Aktueller Preis + naechste Guenstigzeit alle 1min per MQTT an Matrix5-Pi"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+  action:
+    - service: mqtt.publish
+      data:
+        topic: "cmnd/Matrix5/strompreis"
+        retain: true
+        payload: >
+          {% set price_now = states('sensor.paule_current_electricity_price') | float(0) %}
+          {% set best_start = states('sensor.paule_best_price_start') %}
+          {% set price_cheap = states('sensor.paule_today_s_lowest_price') | float(0) %}
+          {% set in_best_period = is_state('binary_sensor.paule_best_price_period', 'on') %}
+          {% if in_best_period %}
+            {# Wir sind gerade selbst im guenstigsten Zeitfenster - nichts Guenstigeres heute mehr #}
+            {% set time_cheap = 'JETZT' %}
+            {% set price_cheap = price_now %}
+          {% elif best_start not in ['unknown', 'unavailable', 'none', ''] %}
+            {% set time_cheap = as_timestamp(best_start) | timestamp_custom('%H:%M', true) %}
+          {% else %}
+            {% set time_cheap = '--:--' %}
+          {% endif %}
+          {# Gleiche Guenstig/Normal/Teuer-Einstufung wie sensor.tibber_preis_status:
+             < 70% vom Tagesdurchschnitt = guenstig, > 130% = teuer, sonst normal. #}
+          {% set avg = state_attr('sensor.paule_price_today', 'price_mean') | float(0) %}
+          {% if avg == 0 %}{% set avg = 30.0 %}{% endif %}
+          {% macro level(p) -%}
+            {%- if p < avg * 0.7 -%}guenstig
+            {%- elif p > avg * 1.3 -%}teuer
+            {%- else -%}normal
+            {%- endif -%}
+          {%- endmacro %}
+          {{ {
+            "price_now": price_now | round(1),
+            "level_now": level(price_now) | trim,
+            "time_cheap": time_cheap,
+            "price_cheap": price_cheap | round(1),
+            "level_cheap": level(price_cheap) | trim
+          } | tojson }}
+  mode: single
