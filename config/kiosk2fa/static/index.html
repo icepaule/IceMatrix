@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>2FA Kiosk</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: #000; color: #eee;
+    font-family: "DejaVu Sans Mono", monospace;
+    overflow: hidden;
+    cursor: none;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 6px;
+    padding: 8px;
+    height: 100vh;
+    align-content: start;
+  }
+  .cell {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 90px;
+  }
+  .name {
+    font-size: 15px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .code {
+    font-size: 34px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #2ecc40;
+    transition: color 0.3s;
+  }
+  .cell.warn .code { color: #e74c3c; }
+  .bar-track {
+    margin-top: 6px;
+    height: 4px;
+    background: #222;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: #2ecc40;
+    transition: width 1s linear, background 0.3s;
+  }
+  .cell.warn .bar-fill { background: #e74c3c; }
+  #offline {
+    position: fixed; top: 8px; right: 12px;
+    color: #e74c3c; font-size: 13px; display: none;
+  }
+</style>
+</head>
+<body>
+<div id="grid"></div>
+<div id="offline">Backend nicht erreichbar</div>
+<script>
+const grid = document.getElementById("grid");
+const offline = document.getElementById("offline");
+let cells = new Map();
+
+function ensureCell(name) {
+  let el = cells.get(name);
+  if (el) return el;
+  el = document.createElement("div");
+  el.className = "cell";
+  el.innerHTML = '<div class="name"></div><div class="code"></div>' +
+                 '<div class="bar-track"><div class="bar-fill"></div></div>';
+  grid.appendChild(el);
+  cells.set(name, el);
+  return el;
+}
+
+function render(accounts) {
+  const seen = new Set(accounts.map(a => a.name));
+  for (const [name, el] of cells) {
+    if (!seen.has(name)) { el.remove(); cells.delete(name); }
+  }
+  for (const a of accounts) {
+    const el = ensureCell(a.name);
+    el.querySelector(".name").textContent = a.name;
+    el.querySelector(".code").textContent = a.code.slice(0, 3) + " " + a.code.slice(3);
+    el.classList.toggle("warn", a.warn);
+    const pct = Math.max(0, Math.min(100, (a.remaining / a.interval) * 100));
+    el.querySelector(".bar-fill").style.width = pct + "%";
+  }
+}
+
+async function poll() {
+  try {
+    const res = await fetch("/api/codes", { cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    const accounts = await res.json();
+    offline.style.display = "none";
+    render(accounts);
+  } catch (e) {
+    offline.style.display = "block";
+  } finally {
+    setTimeout(poll, 1000);
+  }
+}
+poll();
+</script>
+</body>
+</html>
