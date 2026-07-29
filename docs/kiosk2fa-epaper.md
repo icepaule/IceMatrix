@@ -6,8 +6,8 @@ Waveshare-2.13"-e-Paper-HAT klassische Betriebsdaten (Hostname, IP, CPU-Temp, Lo
 Disk, Uptime) an. Wiederverwendete Hardware: ein baugleicher Pi Zero 2W, der zuvor für das
 [Bjorn](https://github.com/infinition/Bjorn)-Projekt lief.
 
-**Status**: Produktiv, mit Platzhalter-Accounts (`secrets_matrix5.py.example`) verifiziert.
-Echte Accounts stehen noch aus (siehe "Offene Punkte").
+**Status**: Produktiv, mit den echten 48 Accounts aus `secrets_matrix5.py` (identische Datei
+wie auf dem Matrix5-Pi) verifiziert.
 
 ## Hardware
 
@@ -49,8 +49,11 @@ zweite QR-Provisionierung nötig ist — die Datei wird einfach vom Matrix5-Pi h
 
 - Backend (`server.py`, Flask) bindet nur an `127.0.0.1` — TOTP-Codes verlassen den Pi nie
   über das Netzwerk, nur der lokale Kiosk-Browser liest sie.
-- Frontend: responsives CSS-Grid (`auto-fill`, min. 200px/Zelle), Name + Code + Countdown-
-  Balken (grün, ab 5s Restzeit rot), Auto-Refresh per `fetch` alle 1s ohne Full-Reload.
+- Frontend: responsives CSS-Grid (`auto-fill`, min. 200px/Zelle, 10pt Gap), Name + Code +
+  Countdown-Balken (grün, ab 5s Restzeit rot), Auto-Refresh per `fetch` alle 1s ohne
+  Full-Reload. Account-Name (Überschrift) bricht bei Bedarf mehrzeilig um
+  (`white-space: normal` + `word-break`) statt mit Ellipsis abgeschnitten zu werden — bei
+  "Issuer: Konto"-Namen teils deutlich länger als der reine Issuer-Name vorher.
 - Autostart: **cage** (minimaler Wayland-Kiosk-Compositor, kein X11/Desktop nötig) als
   systemd-Service mit `TTYPath=/dev/tty1` + `PAMName=login` + `Conflicts=getty@tty1.service`
   — kein Display-Manager/Autologin-Hack nötig. cage hat keinerlei Idle-/DPMS-Logik, daher
@@ -118,10 +121,24 @@ Service fehlerfrei lief), erst `epd2in13_V4` funktionierte — verifiziert per T
 
 ## Account-Provisionierung (Secrets)
 
-Keine erneute Google-Authenticator-QR-Export-Runde nötig: `secrets_matrix5.py` (identisches
-`ACCOUNTS`-Dict-Format wie beim Matrix5-Pi) wird einfach vom Matrix5-Pi auf dieses Gerät
-kopiert (`scp`), beide Geräte zeigen danach dieselben Accounts an — nur eben komplett statt
+`secrets_matrix5.py` (identisches `ACCOUNTS`-Dict-Format wie beim Matrix5-Pi) wird einfach
+vom Matrix5-Pi auf dieses Gerät kopiert (`scp` über einen kurzlebigen Zwischenstopp, danach
+sofort `shred`), beide Geräte zeigen danach dieselben Accounts an — nur eben komplett statt
 in 4er-Slots.
+
+**"Issuer: Konto"-Nachimport (29.07.2026)**: `decode_ga_migration.py` auf dem Matrix5-Pi
+unterstützte das `"authentik: mpauli"`-Format bereits, die vorhandene Datei war aber noch mit
+der alten (nur-Issuer-)Version erzeugt worden. Google-Authenticator-Export erneut gemacht (6
+QR-Seiten), Bilder diesmal per SMB-Freigabe `[vogelbad]` (`/srv/vogelbad-share`) statt Mail
+übertragen (Lehre aus dem früheren Mail-Archiv-Vorfall). QR-Codes mit `zbarimg` gelesen — bei
+kleinen/dichten Codes brauchte es zusätzliches Preprocessing mit ImageMagick
+(Graustufen-Konvertierung + Hochskalieren 200-400%, teils zusätzlich Kontrast/Schärfen), da
+die Original-Screenshots (296×640px) für manche QR-Versionen zu niedrig aufgelöst waren.
+Nach dem Import lagen alte (nur-Issuer, z.B. `authentik2`/`authentik3`) und neue
+(`authentik: adm_lab`) Eintraege parallel vor — alte, jetzt durch "Issuer: Konto"-Eintraege
+abgedeckte Keys per Skript entfernt (44 Stück), 3 Accounts ohne separaten Kontonamen
+(`ns1 (root)`, `IceP@RaidForums`, `CrowdSec`) unveraendert gelassen. Ergebnis: 48 eindeutig
+benannte Accounts, `secrets_matrix5.py` auf **beiden** Pis aktualisiert (identische Datei).
 
 ## Sicherheitshinweise
 
@@ -136,8 +153,7 @@ in 4er-Slots.
 
 - [x] SD-Karte neu geflasht (alte Bjorn-Installation ext4-beschädigt)
 - [x] WLAN/NTP/Swap-Fallstricke gelöst, Kiosk + e-Paper beide verifiziert produktiv
-- [ ] Echte Accounts: `secrets_matrix5.py` vom Matrix5-Pi kopieren, sobald der wieder
-      erreichbar ist (aktuell separates Problem, nicht Teil dieses Setups)
+- [x] Echte Accounts: "Issuer: Konto"-Reimport gemacht, 48 Accounts auf beiden Pis synchron
 - [ ] Mini-HDMI-auf-DVI-Kabel für den eigentlich vorgesehenen Monitor steht noch aus
       (Test lief über einen anderen, direkt per HDMI angeschlossenen Monitor)
 - [ ] Mauszeiger dauerhaft ausblenden, ohne cage zum Haengen zu bringen (siehe
