@@ -24,7 +24,8 @@ MQTT_HOST = "<broker-ip>"
 MQTT_PORT = 1883
 MQTT_USER = "<mqtt-user>"
 MQTT_PASS = "<mqtt-pass>"
-TOPIC_PRICE = "cmnd/Matrix5/strompreis"  # HA -> Pi, JSON: price_now, time_cheap, price_cheap
+TOPIC_PRICE = "cmnd/Matrix5/strompreis"  # HA -> Pi, JSON: price_now, level_now,
+                                          # time_cheap, cheap_tomorrow, price_cheap, level_cheap
 
 PANEL_ROWS = 32
 PANEL_COLS = 64
@@ -41,11 +42,13 @@ LEVEL_COLORS = {
     "teuer": (220, 0, 0),
 }
 COLOR_UNKNOWN = (120, 120, 120)
+COLOR_TIME = (255, 255, 255)
 
 lock = threading.Lock()
 price_data = {
     "price_now": None, "level_now": None,
-    "time_cheap": "--:--", "price_cheap": None, "level_cheap": None,
+    "time_cheap": "--:--", "cheap_tomorrow": False,
+    "price_cheap": None, "level_cheap": None,
 }
 
 
@@ -79,6 +82,14 @@ def setup_matrix():
     return RGBMatrix(options=options)
 
 
+def draw_two_tone(draw, xy, time_part, sep, price_part, font, price_color):
+    """Zeit in Weiss, Trenner+Preis in der Preis-Einstufungsfarbe - nebeneinander."""
+    x, y = xy
+    draw.text((x, y), time_part, font=font, fill=COLOR_TIME)
+    x += draw.textlength(time_part, font=font)
+    draw.text((x, y), sep + price_part, font=font, fill=price_color)
+
+
 def render(matrix, font, data):
     img = Image.new("RGB", (PANEL_COLS, PANEL_ROWS), (0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -89,12 +100,16 @@ def render(matrix, font, data):
     time_cheap = data.get("time_cheap") or "--:--"
     price_cheap = data.get("price_cheap")
     price_cheap_str = f"{price_cheap:.1f}" if price_cheap is not None else "--.-"
+    # "^" statt Leerzeichen als Trenner markiert "guenstigste Zeit ist erst morgen" -
+    # sonst wirkt z.B. "11:00" um 16 Uhr wie eine bereits verstrichene Vormittagszeit
+    # von heute (siehe Nutzer-Rueckfrage 29.07.), ohne die Zeilenbreite zu sprengen.
+    sep_cheap = "^" if data.get("cheap_tomorrow") else " "
 
     color_now = LEVEL_COLORS.get(data.get("level_now"), COLOR_UNKNOWN)
     color_cheap = LEVEL_COLORS.get(data.get("level_cheap"), COLOR_UNKNOWN)
 
-    draw.text((1, 1), f"{now_str} {price_now_str}", font=font, fill=color_now)
-    draw.text((1, 17), f"{time_cheap} {price_cheap_str}", font=font, fill=color_cheap)
+    draw_two_tone(draw, (1, 1), now_str, " ", price_now_str, font, color_now)
+    draw_two_tone(draw, (1, 17), time_cheap, sep_cheap, price_cheap_str, font, color_cheap)
 
     matrix.SetImage(img)
 

@@ -2016,5 +2016,417 @@
     "x": 440,
     "y": 320,
     "wires": []
+  },
+  {
+    "id": "tab_matrix5",
+    "type": "tab",
+    "label": "Matrix5 (Strompreis)",
+    "disabled": false,
+    "info": "Raspberry Pi Zero 2W + HUB75 64x32.\n\nZeile 1: Uhrzeit + aktueller Preis\nZeile 2: naechste guenstigere Zeit + Preis (oder JETZT)\n\nFarbcodiert guenstig/normal/teuer je Zeile.\nAbgeloest das frueher hier per HA-YAML-Automation laufende matrix5_strompreis.yaml (siehe IceMatrix docs/matrix5-strompreis.md)."
+  },
+  {
+    "id": "2a008b365aa999df",
+    "type": "comment",
+    "z": "tab_matrix5",
+    "name": "Matrix5: Strompreis/Waschzeitpunkt (HUB75 64x32)",
+    "info": "",
+    "x": 320,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "9af482569e52fb51",
+    "type": "comment",
+    "z": "tab_matrix5",
+    "name": "--- DATEN SAMMELN ---",
+    "info": "",
+    "x": 180,
+    "y": 90,
+    "wires": []
+  },
+  {
+    "id": "8ea48b6dcd347c61",
+    "type": "server-state-changed",
+    "z": "tab_matrix5",
+    "name": "Aktueller Preis",
+    "server": "80ef547.fe1b7a8",
+    "version": 6,
+    "entities": {
+      "entity": [
+        "sensor.paule_current_electricity_price"
+      ],
+      "substring": [],
+      "regex": []
+    },
+    "outputInitially": true,
+    "stateType": "str",
+    "ifState": "",
+    "ifStateType": "str",
+    "ifStateOperator": "is",
+    "outputOnlyOnStateChange": false,
+    "for": "0",
+    "forType": "num",
+    "forUnits": "seconds",
+    "ignorePrevStateNull": false,
+    "ignorePrevStateUnknown": false,
+    "ignorePrevStateUnavailable": false,
+    "ignoreCurrentStateUnknown": false,
+    "ignoreCurrentStateUnavailable": false,
+    "outputProperties": [
+      {
+        "property": "payload",
+        "propertyType": "msg",
+        "value": "",
+        "valueType": "entityState"
+      }
+    ],
+    "x": 150,
+    "y": 120,
+    "wires": [
+      [
+        "fc9e39810d4bcf1f"
+      ]
+    ],
+    "outputs": 1,
+    "exposeAsEntityConfig": ""
+  },
+  {
+    "id": "fc9e39810d4bcf1f",
+    "type": "function",
+    "z": "tab_matrix5",
+    "name": "Speichere Preis",
+    "func": "flow.set('m5_price_now', parseFloat(msg.payload) || 0);",
+    "outputs": 1,
+    "x": 400,
+    "y": 120,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "3ca777f3493f0264",
+    "type": "server-state-changed",
+    "z": "tab_matrix5",
+    "name": "Tagestiefstpreis",
+    "server": "80ef547.fe1b7a8",
+    "version": 6,
+    "entities": {
+      "entity": [
+        "sensor.paule_today_s_lowest_price"
+      ],
+      "substring": [],
+      "regex": []
+    },
+    "outputInitially": true,
+    "stateType": "str",
+    "ifState": "",
+    "ifStateType": "str",
+    "ifStateOperator": "is",
+    "outputOnlyOnStateChange": false,
+    "for": "0",
+    "forType": "num",
+    "forUnits": "seconds",
+    "ignorePrevStateNull": false,
+    "ignorePrevStateUnknown": false,
+    "ignorePrevStateUnavailable": false,
+    "ignoreCurrentStateUnknown": false,
+    "ignoreCurrentStateUnavailable": false,
+    "outputProperties": [
+      {
+        "property": "payload",
+        "propertyType": "msg",
+        "value": "",
+        "valueType": "entityState"
+      }
+    ],
+    "x": 150,
+    "y": 170,
+    "wires": [
+      [
+        "2b8742dd2336cd5f"
+      ]
+    ],
+    "outputs": 1,
+    "exposeAsEntityConfig": ""
+  },
+  {
+    "id": "2b8742dd2336cd5f",
+    "type": "function",
+    "z": "tab_matrix5",
+    "name": "Speichere Tagestief",
+    "func": "flow.set('m5_price_lowest', parseFloat(msg.payload) || 0);",
+    "outputs": 1,
+    "x": 400,
+    "y": 170,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "58d593f637774dba",
+    "type": "server-state-changed",
+    "z": "tab_matrix5",
+    "name": "Beste-Periode-Start",
+    "server": "80ef547.fe1b7a8",
+    "version": 6,
+    "entities": {
+      "entity": [
+        "sensor.paule_best_price_start"
+      ],
+      "substring": [],
+      "regex": []
+    },
+    "outputInitially": true,
+    "stateType": "str",
+    "ifState": "",
+    "ifStateType": "str",
+    "ifStateOperator": "is",
+    "outputOnlyOnStateChange": false,
+    "for": "0",
+    "forType": "num",
+    "forUnits": "seconds",
+    "ignorePrevStateNull": false,
+    "ignorePrevStateUnknown": false,
+    "ignorePrevStateUnavailable": false,
+    "ignoreCurrentStateUnknown": false,
+    "ignoreCurrentStateUnavailable": false,
+    "outputProperties": [
+      {
+        "property": "payload",
+        "propertyType": "msg",
+        "value": "",
+        "valueType": "entityState"
+      }
+    ],
+    "x": 150,
+    "y": 220,
+    "wires": [
+      [
+        "b30b41edf05a9119"
+      ]
+    ],
+    "outputs": 1,
+    "exposeAsEntityConfig": ""
+  },
+  {
+    "id": "b30b41edf05a9119",
+    "type": "function",
+    "z": "tab_matrix5",
+    "name": "Speichere Best-Start",
+    "func": "flow.set('m5_best_start', msg.payload);",
+    "outputs": 1,
+    "x": 400,
+    "y": 220,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "02ef6f2abd504646",
+    "type": "server-state-changed",
+    "z": "tab_matrix5",
+    "name": "In-bester-Periode",
+    "server": "80ef547.fe1b7a8",
+    "version": 6,
+    "entities": {
+      "entity": [
+        "binary_sensor.paule_best_price_period"
+      ],
+      "substring": [],
+      "regex": []
+    },
+    "outputInitially": true,
+    "stateType": "str",
+    "ifState": "",
+    "ifStateType": "str",
+    "ifStateOperator": "is",
+    "outputOnlyOnStateChange": false,
+    "for": "0",
+    "forType": "num",
+    "forUnits": "seconds",
+    "ignorePrevStateNull": false,
+    "ignorePrevStateUnknown": false,
+    "ignorePrevStateUnavailable": false,
+    "ignoreCurrentStateUnknown": false,
+    "ignoreCurrentStateUnavailable": false,
+    "outputProperties": [
+      {
+        "property": "payload",
+        "propertyType": "msg",
+        "value": "",
+        "valueType": "entityState"
+      }
+    ],
+    "x": 150,
+    "y": 270,
+    "wires": [
+      [
+        "e15cefba6ab5371c"
+      ]
+    ],
+    "outputs": 1,
+    "exposeAsEntityConfig": ""
+  },
+  {
+    "id": "e15cefba6ab5371c",
+    "type": "function",
+    "z": "tab_matrix5",
+    "name": "Speichere Best-Period",
+    "func": "flow.set('m5_in_best_period', msg.payload === 'on');",
+    "outputs": 1,
+    "x": 400,
+    "y": 270,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "4981cdb144d18f85",
+    "type": "server-state-changed",
+    "z": "tab_matrix5",
+    "name": "Tagesdurchschnitt",
+    "server": "80ef547.fe1b7a8",
+    "version": 6,
+    "entities": {
+      "entity": [
+        "sensor.paule_price_today"
+      ],
+      "substring": [],
+      "regex": []
+    },
+    "outputInitially": true,
+    "stateType": "str",
+    "ifState": "",
+    "ifStateType": "str",
+    "ifStateOperator": "is",
+    "outputOnlyOnStateChange": false,
+    "for": "0",
+    "forType": "num",
+    "forUnits": "seconds",
+    "ignorePrevStateNull": false,
+    "ignorePrevStateUnknown": false,
+    "ignorePrevStateUnavailable": false,
+    "ignoreCurrentStateUnknown": false,
+    "ignoreCurrentStateUnavailable": false,
+    "outputProperties": [
+      {
+        "property": "payload",
+        "propertyType": "msg",
+        "value": "",
+        "valueType": "entityState"
+      }
+    ],
+    "x": 150,
+    "y": 320,
+    "wires": [
+      [
+        "c59036353c6b4581"
+      ]
+    ],
+    "outputs": 1,
+    "exposeAsEntityConfig": ""
+  },
+  {
+    "id": "c59036353c6b4581",
+    "type": "function",
+    "z": "tab_matrix5",
+    "name": "Speichere Tagesdurchschnitt",
+    "func": "// Tagesdurchschnitt aus Attribut price_mean lesen (verschiedene moegliche\n// Payload-Formen abdecken, siehe Matrix1-Sonnenstand-Flow fuer das gleiche Muster)\nvar attrs;\nif (msg.data && msg.data.new_state && msg.data.new_state.attributes) {\n    attrs = msg.data.new_state.attributes;\n} else if (msg.attributes && msg.attributes.new_state && msg.attributes.new_state.attributes) {\n    attrs = msg.attributes.new_state.attributes;\n} else if (msg.data && msg.data.attributes) {\n    attrs = msg.data.attributes;\n}\nvar avg = (attrs && attrs.price_mean) ? parseFloat(attrs.price_mean) : 0;\nif (!avg) { avg = 30.0; }\nflow.set('m5_avg', avg);",
+    "outputs": 1,
+    "x": 400,
+    "y": 320,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "1893a3feef55f56a",
+    "type": "comment",
+    "z": "tab_matrix5",
+    "name": "--- ANZEIGE (jede Minute) ---",
+    "info": "",
+    "x": 190,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "e82f561aedc56af0",
+    "type": "inject",
+    "z": "tab_matrix5",
+    "name": "Jede Minute",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "topic",
+        "vt": "str"
+      }
+    ],
+    "repeat": "60",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 150,
+    "y": 420,
+    "wires": [
+      [
+        "d64d3534f4871ee8"
+      ]
+    ]
+  },
+  {
+    "id": "d64d3534f4871ee8",
+    "type": "function",
+    "z": "tab_matrix5",
+    "name": "Strompreis-Anzeige",
+    "func": "// Gleiche Guenstig/Normal/Teuer-Einstufung wie sensor.tibber_preis_status:\n// < 70% vom Tagesdurchschnitt = guenstig, > 130% = teuer, sonst normal.\nvar priceNow = flow.get('m5_price_now') || 0;\nvar priceLowest = flow.get('m5_price_lowest') || 0;\nvar avg = flow.get('m5_avg') || 30;\nvar inBestPeriod = flow.get('m5_in_best_period') || false;\nvar bestStartRaw = flow.get('m5_best_start');\n\nfunction level(p) {\n    if (p < avg * 0.7) return 'guenstig';\n    if (p > avg * 1.3) return 'teuer';\n    return 'normal';\n}\n\nvar timeCheap, priceCheap, cheapTomorrow = false;\nif (inBestPeriod) {\n    // Wir sind gerade selbst im guenstigsten Zeitfenster - nichts Guenstigeres heute mehr\n    timeCheap = 'JETZT';\n    priceCheap = priceNow;\n} else if (bestStartRaw && bestStartRaw !== 'unknown' && bestStartRaw !== 'unavailable') {\n    var d = new Date(bestStartRaw);\n    timeCheap = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');\n    // Datum vergleichen, nicht nur Uhrzeit - sonst wirkt 'morgen frueh' wie 'heute Vormittag'\n    cheapTomorrow = d.toDateString() !== new Date().toDateString();\n    priceCheap = priceLowest;\n} else {\n    timeCheap = '--:--';\n    priceCheap = priceLowest;\n}\n\nvar payload = {\n    price_now: Math.round(priceNow * 10) / 10,\n    level_now: level(priceNow),\n    time_cheap: timeCheap,\n    cheap_tomorrow: cheapTomorrow,\n    price_cheap: Math.round(priceCheap * 10) / 10,\n    level_cheap: level(priceCheap)\n};\n\nnode.status({fill: inBestPeriod ? 'green' : 'grey', shape: 'dot', text: JSON.stringify(payload)});\nmsg.payload = JSON.stringify(payload);\nreturn msg;",
+    "outputs": 1,
+    "x": 400,
+    "y": 420,
+    "wires": [
+      [
+        "bab3d7ad98a921f1",
+        "074660ac8f949bd6"
+      ]
+    ]
+  },
+  {
+    "id": "bab3d7ad98a921f1",
+    "type": "mqtt out",
+    "z": "tab_matrix5",
+    "name": "",
+    "topic": "cmnd/Matrix5/strompreis",
+    "qos": "1",
+    "retain": "true",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_nuc",
+    "x": 650,
+    "y": 400,
+    "wires": []
+  },
+  {
+    "id": "074660ac8f949bd6",
+    "type": "debug",
+    "z": "tab_matrix5",
+    "name": "Matrix5 Debug",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 650,
+    "y": 440,
+    "wires": []
   }
 ]

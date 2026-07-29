@@ -15,12 +15,15 @@ Tasmota-Ampel, aber mit konkreten Zahlen statt nur Rot/Gelb/Grün.
 
 ## Anzeige
 
-Zwei Zeilen:
+Zwei Zeilen, Uhrzeit jeweils weiß, nur der Preisteil farbcodiert:
 - **Zeile 1**: aktuelle Uhrzeit + aktueller Preis (ct/kWh)
 - **Zeile 2**: nächste günstigere Zeit + der dann gültige Preis — oder `JETZT`, falls der
-  aktuelle Moment bereits die günstigste Preisperiode des Tages ist
+  aktuelle Moment bereits die günstigste Preisperiode des Tages ist. Liegt die günstigste
+  Zeit erst am Folgetag, steht statt eines Leerzeichens ein `^` zwischen Uhrzeit und Preis
+  (sonst wirkt z.B. "11:00" nachmittags wie eine bereits verstrichene Vormittagszeit von
+  heute statt wie morgen früh).
 
-Beide Zeilen sind farbcodiert nach Preis-Einstufung (gleiche Schwellwerte wie die bestehende
+Der Preisteil ist farbcodiert nach Preis-Einstufung (gleiche Schwellwerte wie die bestehende
 `sensor.tibber_preis_status`-Vorlage in Home Assistant):
 
 | Farbe | Bedeutung | Schwelle |
@@ -35,20 +38,26 @@ Beide Zeilen sind farbcodiert nach Preis-Einstufung (gleiche Schwellwerte wie di
 flowchart LR
     subgraph HA["Home Assistant"]
         TIBBER["HACS tibber_prices<br/>(sensor.paule_*)"]
-        AUTO["Automation:<br/>Matrix5: Strompreis an Panel senden<br/>(jede Minute)"]
     end
-    TIBBER --> AUTO
-    AUTO -->|"MQTT publish<br/>cmnd/Matrix5/strompreis<br/>(price_now, level_now,<br/>time_cheap, price_cheap, level_cheap)"| MQTT[("Mosquitto")]
+    subgraph NR["Node-RED (Tab 'Matrix5')"]
+        WATCH["5 Watcher-Nodes<br/>(server-state-changed)"]
+        CTX["flow-Context<br/>m5_price_now, m5_avg,<br/>m5_best_start, ..."]
+        COMPOSE["Function: Strompreis-Anzeige<br/>(jede Minute)"]
+    end
+    TIBBER --> WATCH --> CTX --> COMPOSE
+    COMPOSE -->|"MQTT publish (retained)<br/>cmnd/Matrix5/strompreis<br/>(price_now, level_now,<br/>time_cheap, cheap_tomorrow,<br/>price_cheap, level_cheap)"| MQTT[("Mosquitto")]
     MQTT --> SVC["matrix5.py (systemd)<br/>auf Pi Zero 2W"]
     SVC -->|"rgbmatrix-Bindings"| PANEL["HUB75-Panel<br/>2 Zeilen, farbcodiert"]
 ```
 
 Die eigentliche Preis-/Zeitfenster-Logik (Tagesdurchschnitt, günstigste/teuerste Periode,
-"sind wir gerade in der günstigsten Periode") läuft komplett in Home Assistant über die
-HACS-Integration [`tibber_prices`](https://github.com/jpawlowski/hass.tibber_prices) — der
-Pi selbst rechnet nichts, er zeigt nur an, was ihm per MQTT gesagt wird, und hält nur die
-Uhrzeit selbst sekundengenau nach (damit die Anzeige nicht auf den 1-Minuten-Automations-Takt
-warten muss).
+"sind wir gerade in der günstigsten Periode", "ist die günstigste Zeit heute oder morgen")
+läuft komplett in **Node-RED** (nicht als HA-YAML-Automation - Projektkonvention ist, alle
+Automationen als Node-RED-Flow abzubilden, siehe `config/nodered/matrix_flows.json`, Tab
+"Matrix5 (Strompreis)"). Watcher-Nodes lesen die `tibber_prices`-Sensoren, ein
+`Jede-Minute`-Inject-Node triggert die Anzeige-Function, die den JSON-Payload baut. Der Pi
+selbst rechnet nichts, er zeigt nur an, was ihm per MQTT gesagt wird, und hält nur die
+Uhrzeit selbst sekundengenau nach.
 
 ## Der Bug, der alles blockierte
 
@@ -70,11 +79,13 @@ Home Assistant läuft wird von HA beim nächsten Neustart aus dem Arbeitsspeiche
 Home Assistant musste dafür komplett **gestoppt** (nicht nur neu gestartet), erst dann
 bearbeitet, dann wieder gestartet werden.
 
-## Home Assistant
+## Node-RED
 
-Eine Automation (`automations/matrix5_strompreis.yaml`) publiziert minütlich per
-`mqtt.publish` an `cmnd/Matrix5/strompreis` (retained). Nutzt bestehende
-`tibber_prices`-Sensoren:
+Tab "Matrix5 (Strompreis)" in `config/nodered/matrix_flows.json`. Fünf
+`server-state-changed`-Watcher-Nodes (je einer pro Sensor unten) schreiben in den
+Flow-Context, ein `Jede-Minute`-Inject triggert die `Strompreis-Anzeige`-Function, die daraus
+den JSON-Payload baut und per `mqtt out` (retained) an `cmnd/Matrix5/strompreis` sendet.
+Genutzte `tibber_prices`-Sensoren:
 
 | Sensor | Verwendung |
 |---|---|
@@ -94,7 +105,7 @@ Fall `JETZT` statt einer (nicht existenten) zukünftigen Uhrzeit.
 
 | Topic | Richtung | Payload |
 |---|---|---|
-| `cmnd/Matrix5/strompreis` | HA → Pi | retained JSON: `price_now`, `level_now`, `time_cheap`, `price_cheap`, `level_cheap` |
+| `cmnd/Matrix5/strompreis` | Node-RED → Pi | retained JSON: `price_now`, `level_now`, `time_cheap`, `cheap_tomorrow`, `price_cheap`, `level_cheap` |
 
 ## Hardware
 
@@ -125,6 +136,8 @@ Pin-für-Pin-Plan und das Wiring-Diagramm.
 
 - [x] Umstellung von TOTP-Anzeige auf Stromkosten-/Waschzeitpunkt-Anzeige
 - [x] `tibber_prices`-Integration reaktiviert (war disabled, Config-Entry + kaskadierte Entities)
-- [x] Farbcodierung nach Preis-Einstufung (günstig/normal/teuer)
+- [x] Farbcodierung nach Preis-Einstufung (günstig/normal/teuer), Uhrzeit separat weiß
+- [x] "Morgen"-Marker (`^`) statt nur Uhrzeit ohne Datumsbezug
+- [x] Von HA-YAML-Automation auf Node-RED migriert (Projektkonvention: alle Automationen als Flow)
 - [ ] Zweites Panel (aus der TOTP-Ära bereits bestellt) — Verwendungszweck für die
       Stromkosten-Anzeige noch offen, evtl. für einen zweiten Standort im Haus
