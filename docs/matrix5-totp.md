@@ -207,9 +207,9 @@ Kopien (auch in Mail-Archiven!) hinterher aktiv löschen.
 - [x] Panel identifiziert (nur eines, nicht zwei) + Pin-Zuordnung verifiziert
 - [x] ESP32-Bug gefunden (LAT/OE vertauscht) — Entscheidung: Pi bleibt dauerhaft Controller
 - [x] Pi-Provisionierung, systemd-Service, HA-Integration (4 Slots + Automation) produktiv
-- [ ] Vollständige Account-Bezeichnungen ("Dienst: Konto" statt teils generischem
-      Dienstnamen mit Nummern-Suffix bei Kollisionen) — braucht erneuten Export-Durchlauf mit
-      angepasstem Decoder (Issuer+Name statt nur Issuer)
+- [x] Vollständige Account-Bezeichnungen ("Dienst: Konto") — 29.07. erneuter Export-Durchlauf
+      gemacht (siehe [[kiosk2fa_epaper]]-Memory bzw. `docs/kiosk2fa-epaper.md`, da
+      `secrets_matrix5.py` inzwischen von beiden Pis geteilt wird), 48 Accounts
 - [ ] Zweites Panel anketten (bereits bestellt) für mehr gleichzeitig sichtbare Accounts
 - [ ] Foto des fertig verkabelten (Pi ↔ Panel) Aufbaus ergänzen
 - [ ] Pi auf eigene, dedizierte 5V-Stromversorgung umstellen (aktuell geteilter 2A-Step-down
