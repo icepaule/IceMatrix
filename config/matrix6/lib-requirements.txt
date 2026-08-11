@@ -1,0 +1,17 @@
+# CircuitPython-Zusatzbibliotheken fuer Matrix6 (und baugleiche MatrixN-Displays)
+#
+# Quelle: Adafruit CircuitPython Bundle, passend zur installierten CircuitPython-
+# Major-Version (hier: 10.x) -> https://circuitpython.org/libraries
+#
+# Aus dem Bundle-ZIP (Ordner "lib/") folgende Dateien/Ordner nach /CIRCUITPY/lib/
+# kopieren - alles andere im Bundle wird nicht gebraucht:
+
+adafruit_ntp.mpy
+adafruit_ticks.mpy
+adafruit_connection_manager.mpy
+adafruit_minimqtt/          (kompletter Ordner)
+adafruit_display_text/      (kompletter Ordner)
+
+# terminalio, displayio, rgbmatrix, framebufferio, wifi, socketpool, rtc, ssl,
+# json, microcontroller, watchdog sind fest in der CircuitPython-Firmware
+# eingebaut - dafuer wird NICHTS zusaetzlich kopiert.

@@ -57,8 +57,8 @@ section:nth-child(even) .photo-grid figure { background:var(--bg); }
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>
       IceMatrix
     </h1>
-    <p>Fünf LED-Matrix-Displays im Haus, gesteuert über Tasmota, Node-RED und Home Assistant — von PV-Leistung über Alerts bis zum aktuellen Tibber-Strompreis.</p>
-    <span class="badge">Tasmota · ESP8266 · Node-RED · Home Assistant · Raspberry Pi</span>
+    <p>Sechs LED-Matrix-Displays im Haus, gesteuert über Tasmota, Node-RED und Home Assistant — von PV-Leistung über Alerts bis zum aktuellen Tibber-Strompreis, an zwei Standorten.</p>
+    <span class="badge">Tasmota · ESP8266 · ESP32-S3 · CircuitPython · Node-RED · Home Assistant · Raspberry Pi</span>
   </div>
 </header>
 
@@ -76,12 +76,13 @@ section:nth-child(even) .photo-grid figure { background:var(--bg); }
   <div class="container">
     <h2>Überblick</h2>
     <p>IceMatrix steuert vier serielle MAX7219-Dot-Matrix-Displays (Matrix1–4) per Tasmota-Custom-Firmware
-    sowie ein fünftes, technisch komplett anderes HUB75-RGB-Panel (Matrix5) auf einem eigenen Raspberry Pi
-    Zero 2W. Die eigentliche Anzeigelogik läuft konsequent in Node-RED und bezieht ihre Daten aus Home
-    Assistant — PV-Leistung, Tibber-Strompreise, Wetter-/Katastrophenwarnungen (NINA/DWD), THW-Alarme
-    (Divera) und Netzwerk-/Mesh-Status. Matrix5 zeigte ursprünglich TOTP/2FA-Codes an; diese Aufgabe ist
-    komplett auf das separate Projekt Kiosk2FA umgezogen, das Panel dient seither als zweite,
-    zahlengenaue "Tibber-Ampel" mit aktuellem Preis und nächster günstiger Zeit.</p>
+    sowie zwei technisch komplett andere HUB75-RGB-Panels (Matrix5 auf einem Raspberry Pi Zero 2W,
+    Matrix6 auf einem ESP32-S3 mit CircuitPython) an zwei Standorten. Die eigentliche Anzeigelogik läuft
+    konsequent in Node-RED und bezieht ihre Daten aus Home Assistant — PV-Leistung, Tibber-Strompreise,
+    Wetter-/Katastrophenwarnungen (NINA/DWD), THW-Alarme (Divera) und Netzwerk-/Mesh-Status. Matrix5
+    zeigte ursprünglich TOTP/2FA-Codes an; diese Aufgabe ist komplett auf das separate Projekt Kiosk2FA
+    umgezogen, das Panel dient seither als zahlengenaue "Tibber-Ampel" mit aktuellem Preis und nächster
+    günstiger Zeit — Matrix6 dupliziert das an einem zweiten Standort im Haus.</p>
     <div class="card-grid">
       <div class="card">
         <h3>Matrix1–4 (MAX7219)</h3>
@@ -90,10 +91,16 @@ section:nth-child(even) .photo-grid figure { background:var(--bg); }
         und ein priorisiertes Alert-System.</p>
       </div>
       <div class="card">
-        <h3>Matrix5 (HUB75)</h3>
+        <h3>Matrix5 (HUB75, Raspberry Pi)</h3>
         <p>Eigenständiges 64x32-RGB-Panel an einem Raspberry Pi Zero 2W, gesteuert per Python-Service
         und MQTT. Zeigt aktuellen Strompreis und die nächste günstigere Zeitperiode, farbcodiert nach
         Preis-Einstufung.</p>
+      </div>
+      <div class="card">
+        <h3>Matrix6 (HUB75, ESP32-S3)</h3>
+        <p>Identische Anzeige wie Matrix5, aber auf einem ESP32-S3 mit CircuitPython
+        (<code>rgbmatrix</code>-DMA-Treiber statt Raspberry Pi) — als wiederholbare Bauanleitung für
+        weitere baugleiche Displays dokumentiert.</p>
       </div>
       <div class="card">
         <h3>Node-RED als Automations-Layer</h3>
@@ -127,14 +134,17 @@ flowchart LR
     MQTT --> TAS["Tasmota ESP8266<br/>Matrix1-4"]
     TAS --> LED1["MAX7219 Dot-Matrix-Panels"]
     MQTT -->|"cmnd/Matrix5/strompreis<br/>retained JSON"| PI["matrix5.py (systemd)<br/>Raspberry Pi Zero 2W"]
+    MQTT -->|"cmnd/Matrix6/strompreis<br/>retained JSON"| ESP["code.py<br/>ESP32-S3 + CircuitPython"]
     PI --> LED2["HUB75 RGB-Panel<br/>Matrix5"]
+    ESP --> LED3["HUB75 RGB-Panel<br/>Matrix6"]
       </pre>
     </div>
     <p>Die Formatierungs- und Entscheidungslogik (Uhrzeitformat, PV-Watt/kWh-Umrechnung, Alert-Priorisierung,
     Strompreis-Einstufung günstig/normal/teuer) liegt vollständig in Node-RED. Die Endgeräte selbst sind
-    dumm: Tasmota-ESP8266 setzen nur empfangene Textbefehle auf die MAX7219-Kette um, und der Pi rendert nur
-    das per retained MQTT-Payload gelieferte JSON auf das HUB75-Panel — die Preis-/Zeitfenster-Berechnung
-    für Matrix5 läuft ebenfalls in Node-RED, nicht auf dem Pi selbst.</p>
+    dumm: Tasmota-ESP8266 setzen nur empfangene Textbefehle auf die MAX7219-Kette um, Pi und ESP32-S3
+    rendern nur das per retained MQTT-Payload gelieferte JSON auf ihr jeweiliges HUB75-Panel — die
+    Preis-/Zeitfenster-Berechnung für Matrix5 und Matrix6 läuft identisch in Node-RED, nicht auf den
+    Endgeräten selbst.</p>
   </div>
 </section>
 
@@ -151,6 +161,7 @@ flowchart LR
         <tr><td>Matrix3</td><td>8x MAX7219 (64x8)</td><td>4x Rot + 4x Blau</td><td>Wemos D1 Mini</td><td>Uhrzeit + PV + Alerts</td></tr>
         <tr><td>Matrix4 (Strompreis)</td><td>4x MAX7219 (32x8)</td><td>Rot</td><td>Wemos D1 Mini</td><td>Tibber Strompreis + Trend</td></tr>
         <tr><td>Matrix5 (Strompreis/Waschzeitpunkt)</td><td>1x HUB75 64x32</td><td>RGB</td><td>Raspberry Pi Zero 2W</td><td>Aktueller Preis + günstigste Zeit</td></tr>
+        <tr><td>Matrix6 (Strompreis/Waschzeitpunkt, 2. Standort)</td><td>1x HUB75 64x32</td><td>RGB</td><td>ESP32-S3 + CircuitPython</td><td>Identisch zu Matrix5, andere Hardware</td></tr>
       </tbody>
     </table>
     <h3>Alert-Codes (Matrix3, Auszug)</h3>
@@ -169,7 +180,8 @@ flowchart LR
       <figure><img src="images/matrix1-panel.jpeg" alt="Matrix1 PV-Anzeige Panel"><figcaption>Matrix1 — PV-Leistung</figcaption></figure>
       <figure><img src="images/matrix3-panel.jpeg" alt="Matrix3 Uhr/PV/Alerts Panel"><figcaption>Matrix3 — Uhr / PV / Alerts</figcaption></figure>
       <figure><img src="images/matrix4-panel.jpeg" alt="Matrix4 Strompreis Panel"><figcaption>Matrix4 — Strompreis + Trend</figcaption></figure>
-      <figure><img src="images/matrix5-strompreis-panel.jpeg" alt="Matrix5 HUB75 Strompreis Panel"><figcaption>Matrix5 — HUB75 RGB-Panel</figcaption></figure>
+      <figure><img src="images/matrix5-strompreis-panel.jpeg" alt="Matrix5 HUB75 Strompreis Panel"><figcaption>Matrix5 — HUB75 RGB-Panel (Raspberry Pi)</figcaption></figure>
+      <figure><img src="images/matrix6-strompreis-panel.jpeg" alt="Matrix6 HUB75 Strompreis Panel"><figcaption>Matrix6 — HUB75 RGB-Panel (ESP32-S3)</figcaption></figure>
     </div>
   </div>
 </section>
@@ -183,8 +195,11 @@ flowchart LR
       <span class="tech-item">MAX7219 Dot-Matrix</span>
       <span class="tech-item">HUB75 RGB-Panel</span>
       <span class="tech-item">Raspberry Pi Zero 2W</span>
+      <span class="tech-item">ESP32-S3 + CircuitPython</span>
+      <span class="tech-item">rgbmatrix (DMA, CircuitPython)</span>
+      <span class="tech-item">adafruit_minimqtt</span>
       <span class="tech-item">Python 3.13</span>
-      <span class="tech-item">rgbmatrix / Pillow</span>
+      <span class="tech-item">rgbmatrix / Pillow (Pi)</span>
       <span class="tech-item">paho-mqtt</span>
       <span class="tech-item">Node-RED</span>
       <span class="tech-item">Home Assistant</span>
@@ -211,7 +226,8 @@ cd tasmota-build
 
 platformio run -e tasmota-display</code></pre>
     <p>Fertige Firmware liegt außerdem als <code>firmware/tasmota-display.bin</code> im Repo. Die Node-RED-Flows
-    für alle fünf Displays sind exportiert unter <code>config/nodered/matrix_flows.json</code>.</p>
+    für Matrix1–5 sind exportiert unter <code>config/nodered/matrix_flows.json</code> (Matrix6 nutzt
+    denselben Function-Node, der zusätzliche <code>mqtt out</code>-Node dafür ist noch nachzuexportieren).</p>
   </div>
 </section>
 

@@ -17,9 +17,14 @@ plus ein eigenständiges Raspberry-Pi-Projekt (Matrix5) mit HUB75-RGB-Panel.
 | Matrix3 | 8x MAX7219 (64x8) | 4x Rot + 4x Blau | Wemos D1 Mini | Uhrzeit + PV + Alerts |
 | Matrix4 (Strompreis) | 4x MAX7219 (32x8) | Rot | Wemos D1 Mini | Tibber Strompreis + Trend |
 | **Matrix5 (Strompreis/Waschzeitpunkt)** | 1x HUB75 P4-2121-64x32-16S | RGB | **Raspberry Pi Zero 2W** | Aktueller Preis + günstigste Zeit (Tibber, Node-RED statt Tasmota) |
+| **Matrix6 (Strompreis/Waschzeitpunkt, 2. Standort)** | 1x HUB75 P4-2121-64x32-16S | RGB | **ESP32-S3 + CircuitPython** | Identisch zu Matrix5, andere Hardware (kein Pi) |
 
-Matrix5 ist technisch komplett anders (RGB-DMA-Panel statt serieller MAX7219-Kette, Python-Service auf einem Pi statt Tasmota) und deshalb separat dokumentiert:
-→ [Matrix5: Stromkosten-/Waschzeitpunkt-Anzeige](docs/matrix5-strompreis.md)
+Matrix5 und Matrix6 sind technisch komplett anders als Matrix1-4 (RGB-DMA-Panel statt serieller
+MAX7219-Kette) und deshalb separat dokumentiert. Matrix6 zeigt exakt dieselbe Anzeige wie Matrix5,
+läuft aber auf einem ESP32-S3 mit CircuitPython statt einem Raspberry Pi — die Doku dort ist
+bewusst als wiederholbare Bauanleitung für weitere baugleiche Displays geschrieben:
+→ [Matrix5: Stromkosten-/Waschzeitpunkt-Anzeige (Raspberry Pi)](docs/matrix5-strompreis.md)
+→ [Matrix6: Stromkosten-/Waschzeitpunkt-Anzeige (ESP32-S3 + CircuitPython, Bauanleitung für MatrixN)](docs/matrix6-strompreis.md)
 
 ## Verkabelung (Matrix1-4, MAX7219)
 
@@ -65,6 +70,8 @@ flowchart LR
     NR -->|"cmnd/&lt;name&gt;/DisplayText<br/>cmnd/&lt;name&gt;/DisplayDimmer"| MQTT[("MQTT<br/>Mosquitto")]
     MQTT --> T1["Tasmota ESP8266"]
     T1 --> M["MAX7219 Matrix"]
+    MQTT -->|"cmnd/Matrix5/strompreis<br/>cmnd/Matrix6/strompreis<br/>(je retained)"| M5["Matrix5: Pi Zero 2W<br/>Matrix6: ESP32-S3+CircuitPython"]
+    M5 --> HUB["HUB75 RGB-Panel"]
 ```
 
 ## Custom Firmware (Pflicht für Matrix1-4!)
@@ -85,6 +92,7 @@ Jedes Display hat einen eigenen Node-RED Flow:
 - **Matrix3**: Links Uhr/PV (5 Zeichen) | Rechts Alerts (4 Zeichen, rotierend)
 - **Matrix4**: Tibber Strompreis + Trend-Pfeil + Min/Max
 - **Matrix5**: Tibber Strompreis + günstigste Zeit (5 Watcher-Nodes → Function → MQTT an den Pi, siehe [docs/matrix5-strompreis.md](docs/matrix5-strompreis.md))
+- **Matrix6**: identische Logik wie Matrix5, gleicher Function-Node — nur ein zweiter `mqtt out`-Node mit Topic `cmnd/Matrix6/strompreis` (retained) kam dazu, siehe [docs/matrix6-strompreis.md](docs/matrix6-strompreis.md)
 
 → [Node-RED Konfiguration](docs/nodered-config.md)
 
@@ -124,7 +132,8 @@ IceMatrix/
 │   │   ├── user_config_override.h     # PlatformIO Build-Override
 │   │   └── platformio_override.ini    # PlatformIO Environment-Config
 │   ├── nodered/
-│   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-5)
+│   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-5; Matrix6-mqtt-out-
+│   │                                  # Node noch nachzuexportieren, siehe docs/matrix6-strompreis.md#offene-punkte)
 │   ├── homeassistant/
 │   │   ├── matrix3_notifications.yaml # HA Package für Alert-Toggles
 │   │   └── matrix5.yaml               # VERALTET: HA Package der alten TOTP-Auswahl (4 Slots),
@@ -134,6 +143,9 @@ IceMatrix/
 │   │   ├── matrix5.service            # systemd-Unit
 │   │   ├── decode_ga_migration.py     # VERALTET: Google-Authenticator-Decoder aus der TOTP-Aera
 │   │   └── secrets_matrix5.py.example # VERALTET: Vorlage aus der TOTP-Aera, nicht mehr benoetigt
+│   ├── matrix6/
+│   │   ├── code.py                    # CircuitPython-Hauptskript (Vorlage fuer weitere MatrixN)
+│   │   └── lib-requirements.txt       # Benoetigte CircuitPython-Bundle-Bibliotheken
 │   └── (Kiosk2FA-Code liegt im eigenen Repo: github.com/icepaule/Ice-2FA-Kiosk)
 └── images/                            # (unbenutzt, siehe docs/images/)
 ```
@@ -149,6 +161,7 @@ Alle Displays im Betrieb fotografiert, eingebunden direkt in den jeweiligen Doku
 | Matrix3 | ✅ `docs/images/matrix3-panel.jpeg` | [docs/nodered-config.md](docs/nodered-config.md#flow-matrix3-uhrpvalerts) |
 | Matrix4 | ✅ `docs/images/matrix4-panel.jpeg` | [docs/nodered-config.md](docs/nodered-config.md#flow-matrix4-strompreis) |
 | Matrix5 | ✅ `docs/images/matrix5-strompreis-panel.jpeg` | [docs/matrix5-strompreis.md](docs/matrix5-strompreis.md) |
+| Matrix6 | ✅ `docs/images/matrix6-strompreis-panel.jpeg` | [docs/matrix6-strompreis.md](docs/matrix6-strompreis.md) |
 
 ## Lessons Learned
 
@@ -165,3 +178,5 @@ Alle Displays im Betrieb fotografiert, eingebunden direkt in den jeweiligen Doku
 11. **Kein Fehllesen bei sicherheitsrelevanten Codes riskieren** - für die TOTP-Ziffern auf Matrix5 bewusst eine handgezeichnete Pixel-Bitmap statt eines kleinen TrueType-Fonts genutzt, da Anti-Aliasing-Grauwerte bei wenigen Pixeln Höhe ineinander verschwimmen
 12. **Pi Zero 2W + paralleler C++-Compile-Job = Reboot-Risiko** - bei knappem RAM (~415MB) treibt ein Multi-Job-Build das System in Swap-Thrashing, der systemd-Hardware-Watchdog (60s) resettet dann hart; Fix: `CMAKE_BUILD_PARALLEL_LEVEL=1`/`MAKEFLAGS=-j1` beim Bauen, Desktop-GUI für den späteren Headless-Betrieb deaktiviert
 13. **Edge-triggered MQTT-Kommandos ohne `retain` sind ein Single-Point-of-Failure** - Matrix1 blieb 29.07.2026 eine ganze Nacht an, weil das einmalige `Power OFF`-Kommando beim Phasenübergang verloren ging und niemand es erneut sendete; gleiches Muster traf Matrix2-4 (Dimmer) und die Tibber-Ampel (dort ganz ohne periodischen Tick, potenziell stundenlang falsche Farbe). Fix-Pattern: `retain=true` auf State-Commands + periodisches Self-Heal-Republish, siehe [Zuverlässigkeit](docs/nodered-config.md#zuverlässigkeit-retain--self-heal-für-state-commands)
+14. **Matrix6 (ESP32-S3): Vermeintliche 3.3V/5V-Pegelprobleme bei HUB75 waren tatsächlich Wackelkontakte** am Stecker (fehlende Spaltenbreite, eingefrorene Adressleitung, fehlende Farbkanäle - jedes Mal Stecker nachgedrückt, jedes Mal behoben) - ein bereits bestellter Levelshifter wurde am Ende nicht gebraucht. Details + Bauanleitung: [docs/matrix6-strompreis.md](docs/matrix6-strompreis.md#lessons-learned)
+15. **Matrix6: ESPHome/pioarduino haengt im Bootloader bei defektem PSRAM-Chip** (haeufig bei guenstigen ESP32-S3-N16R8-Klonen) - App-Level-Kconfig-Fixes helfen nicht, da der Hang schon im Bootloader passiert. CircuitPython bootet auf demselben Chip klaglos ohne PSRAM weiter - Grund fuer den Umstieg von ESPHome auf CircuitPython bei diesem Display.
