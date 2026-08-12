@@ -226,9 +226,8 @@ Bereits in `code.py` enthalten, nicht extra nötig:
 - [x] Root-Cause-Suche für fehlerhafte Paneldarstellung (Wackelkontakte, nicht Pegel/Software)
 - [x] Vollständige Stromkosten-Anzeige (WiFi, NTP inkl. DST, MQTT, JSON, Rendering)
 - [x] Härtung für unbeaufsichtigten Dauerbetrieb (Watchdog, WiFi-/MQTT-Reconnect)
+- [x] Node-RED-`mqtt out`-Node für `cmnd/Matrix6/strompreis` aus der laufenden Instanz exportiert
+      und in `config/nodered/matrix_flows.json` übernommen
 - [ ] Feste Wandmontage (in Arbeit)
-- [ ] Node-RED-`mqtt out`-Node für `cmnd/Matrix6/strompreis` aus der laufenden Instanz erneut
-      exportieren und `config/nodered/matrix_flows.json` aktualisieren (aktuell nur textuell in
-      dieser Doku beschrieben, nicht im JSON enthalten)
 - [ ] Vier weitere baugleiche Displays (Hardware bereits vorhanden) — diese Anleitung ist die
       Vorlage dafür, siehe [Schritt-für-Schritt-Anleitung](#schritt-für-schritt-anleitung-vorlage-für-matrixn)

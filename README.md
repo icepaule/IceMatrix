@@ -132,8 +132,8 @@ IceMatrix/
 │   │   ├── user_config_override.h     # PlatformIO Build-Override
 │   │   └── platformio_override.ini    # PlatformIO Environment-Config
 │   ├── nodered/
-│   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-5; Matrix6-mqtt-out-
-│   │                                  # Node noch nachzuexportieren, siehe docs/matrix6-strompreis.md#offene-punkte)
+│   │   └── matrix_flows.json          # Exportierte Node-RED Flows (Matrix1-6, Matrix6 im Tab
+│   │                                  # "Matrix5" als zusaetzlicher mqtt-out-Node)
 │   ├── homeassistant/
 │   │   ├── matrix3_notifications.yaml # HA Package für Alert-Toggles
 │   │   └── matrix5.yaml               # VERALTET: HA Package der alten TOTP-Auswahl (4 Slots),
