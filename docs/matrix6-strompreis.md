@@ -6,7 +6,7 @@ CircuitPython statt Raspberry Pi Zero 2W**. Diese Anleitung ist bewusst als **Sc
 Bauanleitung** geschrieben, die sich 1:1 für weitere baugleiche Displays (MatrixN) wiederholen
 lässt — nur der kurze Konfigurationsblock in `code.py` ändert sich pro Gerät.
 
-**Status**: Produktiv seit 11.08.2026.
+**Status**: Produktiv seit 11.08.2026, Hardware final (inkl. Boot-Brownout-Fix + Gehäuseanpassung) seit 13.08.2026.
 
 ## Warum ESP32-S3 statt Raspberry Pi?
 
@@ -32,6 +32,13 @@ Uhrzeit weiß, Preisteil farbcodiert nach Einstufung (grün=günstig, gelb=norma
 | Panel | HUB75, P4-2121, 64x32px, 1/16-Scan | Mit **FM6126A**-Shift-Treiber-Chips (siehe Firmware-Hinweis unten) |
 | Netzteil | 5V, min. 4A, separat vom ESP32 | Unterdimensionierte Netzteile verursachen Datenmüll auf dem Panel, nicht nur Dimmen |
 | Kabel | HUB75-16pin-Flachbandkabel | Meist im Lieferumfang des Panels |
+| Anschlussplatine (Breakout) mit eingebauten Pufferkondensatoren | z.B. gängige ESP32-S3-DevKitC-Breakout-/Extension-Boards | Puffert die kurze Stromspitze beim Boot direkt am ESP ab — siehe Lessons-Learned-Punkt zum Boot-Brownout unten. Ohne das reicht selbst ein kräftiges externes Netzteil direkt an den 5V/GND-Pins nicht zuverlässig aus |
+
+> **Gehäusetiefe einplanen**: Wird eine Anschluss-/Breakout-Platine wie oben verwendet, braucht
+> das Gehäuse spürbar mehr Bautiefe als nur für den nackten ESP32-S3. Am einfachsten per
+> gedrucktem Distanz-/Spacer-Ring zwischen den vorhandenen Gehäusehälften lösen (Außenmaße vom
+> Original-STL übernehmen, Innenmaße/Wandstärke des Gehäuses beibehalten) — spart ein direktes
+> Bearbeiten der Original-STL-Datei und lässt Schraubdome/Passungen unangetastet.
 
 > **Zwei-USB-Ports-Falle**: Viele ESP32-S3-DevKitC-Boards haben eine "UART"-Buchse (über einen
 > WCH-CH343-Chip, für `esptool`-Flashing) UND eine separate native "USB"-Buchse (für
@@ -206,6 +213,18 @@ Bereits in `code.py` enthalten, nicht extra nötig:
    Google-Fonts-Download (Pixelify Sans) eingeplant — mit CircuitPython reicht das fest
    eingebaute `terminalio.FONT` zusammen mit `adafruit_display_text.label.Label` völlig aus,
    spart einen kompletten Anleitungsschritt.
+9. **Boot-Brownout ist kein reines "Netzteil zu schwach"-Problem.** Nach dem Festverbauen zeigte
+   das Board wiederholt CircuitPython Safe Mode ("Power dipped. Make sure you are providing
+   enough power.") oder hing direkt im ROM-Download-Modus fest — Panel blieb schwarz. Sauber
+   eingegrenzt per USB-Enumerations-Stabilitätstest (der einfachere UART-Bridge-Chip blieb stabil,
+   während der native ESP32-S3-USB-Port alle paar Sekunden neu enumerierte) sowie durch das
+   Anschließen selbst eines kräftigen 4A-Netzteils **direkt an die 5V/GND-Pins des ESP** (nicht
+   nur ans Panel) — der Brownout trat trotzdem reproduzierbar auf. Ursache war also keine zu
+   schwache externe Quelle, sondern zu wenig lokale Pufferkapazität direkt am ESP-Stromeingang
+   für die kurze Stromspitze beim Boot (PSRAM-/Flash-Init). **Fix**: Anschlussplatine mit
+   eingebauten Elkos verwenden (siehe Hardware-Tabelle oben) — danach bootet das Board zuverlässig
+   ohne Safe Mode. Bei Eigenbau ohne fertige Breakout-Platine tut es alternativ ein einzelner
+   100–470µF-Elko zwischen 5V und GND, so nah wie möglich am ESP-Stromeingang.
 
 ## MQTT
 
@@ -228,6 +247,8 @@ Bereits in `code.py` enthalten, nicht extra nötig:
 - [x] Härtung für unbeaufsichtigten Dauerbetrieb (Watchdog, WiFi-/MQTT-Reconnect)
 - [x] Node-RED-`mqtt out`-Node für `cmnd/Matrix6/strompreis` aus der laufenden Instanz exportiert
       und in `config/nodered/matrix_flows.json` übernommen
-- [ ] Feste Wandmontage (in Arbeit)
+- [x] Feste Wandmontage
+- [x] Boot-Brownout am ESP behoben (Anschlussplatine mit eingebauten Elkos, siehe Lessons Learned)
+- [x] Gehäusetiefe für Anschlussplatine angepasst (Spacer-Ring, siehe Hardware-Hinweis oben)
 - [ ] Vier weitere baugleiche Displays (Hardware bereits vorhanden) — diese Anleitung ist die
       Vorlage dafür, siehe [Schritt-für-Schritt-Anleitung](#schritt-für-schritt-anleitung-vorlage-für-matrixn)
